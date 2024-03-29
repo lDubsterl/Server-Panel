@@ -1,14 +1,14 @@
 create table if not exists "Site accounts"
 (
+	Id serial primary key,
 	Email varchar,
 	Password varchar,
-	constraint "email1_pkey" primary key(Email)
 );
 
 create table if not exists "Ssh accounts"
 (
+	Id serial primary key,
 	Email varchar,
 	SshUsername varchar,
 	SshPassword varchar,
-	constraint "email2_pkey" primary key(Email)
 );

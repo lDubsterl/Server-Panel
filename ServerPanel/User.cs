@@ -22,14 +22,11 @@ namespace ServerPanel
 
 	public class SshUser
 	{
-		public string Email { get; set; }
 		public string SshUsername { get; set; }
 		public string SshPassword { get; set; }
-		[JsonConstructor]
 		public SshUser(string email)
 		{
-			Email = email;
-			SshUsername = Email.Replace("@", "");
+			SshUsername = email.Replace("@", "");
 
 			string allowed = "1234567890QWERTYUIOPASDFGHJKLZXCVBNMqwertyuiopasdfghjklzxcvbnm*-+#%";
 			string password = "";
@@ -41,9 +38,9 @@ namespace ServerPanel
 			SshPassword = password;
 		}
 
-		public SshUser(string email, string sshUsername, string sshPassword)
+		[JsonConstructor]
+		public SshUser(string sshUsername, string sshPassword)
 		{
-			Email = email;
 			SshUsername = sshUsername;
 			SshPassword = sshPassword;
 		}

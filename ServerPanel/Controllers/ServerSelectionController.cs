@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Text.Json.Serialization;
 
 namespace ServerPanel.Controllers
 {
@@ -60,24 +61,46 @@ namespace ServerPanel.Controllers
 				using (IDbConnection db = new NpgsqlConnection(connectionString))
 				{
 					AccountUser accUser = db.Query<AccountUser>("select Email, Password from \"Site accounts\" where id = @id", new { id }).First();
-					SshUser sshUser = db.Query<SshUser>("select sshUsername, sshPassword from \"Ssh accounts\" where id = @id", new { id }).First();
+					SshUser sshUser = null;
+					try
+					{
+						sshUser = db.Query<SshUser>("select sshUsername, sshPassword from \"Ssh accounts\" where id = @id", new { id }).First();
+					}
+					catch (System.InvalidOperationException e)
+					{
+						Console.WriteLine(e.Message + id);
+					}
 					if (sshUser is null)
 					{
 						sshUser = new SshUser(accUser.Email);
 						var serverDirectory = $"cd /d d:\\Servers\\{sshUser.SshUsername} && ";
-						db.Execute("insert into \"Ssh accounts\" values(@email, @sshUsername, @sshPassword)", sshUser);
+						client.RunCommand($"cd /d d:\\Servers && mkdir {sshUser.SshUsername}");
+						db.Execute("insert into \"Ssh accounts\"(SshUsername, SshPassword) values(@sshUsername, @sshPassword)", sshUser);
 						client.RunCommand($"net user {sshUser.SshUsername} {sshUser.SshPassword} /add");
-						client.RunCommand("reg add \"HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon\\SpecialAccounts\\UserList\"" +
-							$" /t REG_DWORD /f /d 0 /v {sshUser.SshUsername}");
+						//client.RunCommand("reg add \"HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon\\SpecialAccounts\\UserList\"" +
+						//	$" /t REG_DWORD /f /d 0 /v {sshUser.SshUsername}");
 						client.RunCommand($"cd /d d:\\Servers && mkdir {sshUser.SshUsername}");
 						var cmd = client.CreateCommand(serverDirectory + "java -jar ../forge-1.20.4-49.0.33-installer.jar --installServer");
 						var exec = cmd.BeginExecute();
+						string cmdResult = "", oldResult = "";
 						while (!exec.IsCompleted)
+						{
 							Thread.Sleep(2000);
+							cmdResult = cmd.Result;
+							if (cmdResult != oldResult)
+								Console.WriteLine(cmdResult);
+							oldResult = cmdResult;
+						}
 						cmd = client.CreateCommand(serverDirectory + "java @libraries/net/minecraftforge/forge/1.20.4-49.0.33/win_args.txt %*");
 						exec = cmd.BeginExecute();
 						while (!exec.IsCompleted)
+						{
 							Thread.Sleep(2000);
+							cmdResult = cmd.Result;
+							if (cmdResult != oldResult)
+								Console.WriteLine(cmdResult);
+							oldResult = cmdResult;
+						}
 						var eula = client.RunCommand(serverDirectory + "type eula.txt").Result;
 						eula = eula.Replace("false", "true");
 						var strings = eula.Split("\r\n");
@@ -103,13 +126,14 @@ namespace ServerPanel.Controllers
 					regex = new Regex("\\u001b\\[K\\u001b\\[\\?25h\\u001b251|\\u001b\\[K|\\u001b\\[29;1H|\\u001b\\[28;1H|\\u001b\\[27;1H|" +
 						"\\u001b\\[24;1H|\\u001b\\[\\?25h|\\u001b\\[25l");
 					text = regex.Replace(text, "");
-					Console.WriteLine(text);
+					if (text != "")
+						Console.WriteLine(text);
 				}
 				sessionInfo[executingCommand.id].client.Disconnect();
 			}
 		}
 
-		[HttpPost("{id}")]
+		[HttpPost("panel/general/{id}")]
 		public string[] StartServer(int id)
 		{
 			using (IDbConnection db = new NpgsqlConnection(connectionString))
@@ -138,7 +162,7 @@ namespace ServerPanel.Controllers
 			}
 		}
 
-		[HttpPost]
+		[HttpPost("panel/general/")]
 		public StatusCodeResult ExecuteConsoleCommand(int id, string command)
 		{
 			if (sessionInfo[id].client.IsConnected)
@@ -150,6 +174,44 @@ namespace ServerPanel.Controllers
 			}
 			else
 				return new StatusCodeResult((int)HttpStatusCode.InternalServerError);
+		}
+
+		[HttpGet("panel/files/{id}")]
+		public string ParseFile(int id, string name)
+		{
+			using (IDbConnection db = new NpgsqlConnection(connectionString))
+			{
+				SshUser user = db.Query<SshUser>("select sshUsername, sshPassword from \"Ssh accounts\" where Id = @id", new { id }).First();
+				var fileContent = System.IO.File.ReadAllText($"d:\\Servers\\{user.SshUsername}\\{name}");
+				return fileContent;
+			}
+		}
+
+		public class FileWritingInfo
+		{
+			public int Id;
+			public string Name;
+			public string Content;
+
+			[JsonConstructor]
+			public FileWritingInfo(int id, string name, string content)
+			{
+				Id = id;
+				Name = name;
+				Content = content;
+			}
+		}
+
+		[HttpPost("panel/files/{id}")]
+		public StatusCodeResult WriteFile(int id, string name, string fileContent)
+		{
+			using (IDbConnection db = new NpgsqlConnection(connectionString))
+			{
+				SshUser user = db.Query<SshUser>("select sshUsername, sshPassword from \"Ssh accounts\" where Id = @id", new { id }).First();
+				var text = fileContent.Split("\\r\\n");
+				System.IO.File.WriteAllLines($"d:\\Servers\\{user.SshUsername}\\{name}", text);
+				return new StatusCodeResult((int)HttpStatusCode.OK);
+			}
 		}
 	}
 }

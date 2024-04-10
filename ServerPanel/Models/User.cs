@@ -4,27 +4,31 @@ using System.Linq;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
-namespace ServerPanel
+namespace ServerPanel.Models
 {
-	public class AccountUser
+	public class UserAccount
 	{
+		public int Id { get; set; }
 		public string Email { get; set; }
 
 		public string Password { get; set; }
 
 		[JsonConstructor]
-		public AccountUser(string email, string password)
-		{
+		public UserAccount(int id, string email, string password)
+		{	
+			Id = id;
 			Email = email;
 			Password = password;
 		}
 	}
 
-	public class SshUser
+	public class SshAccount
 	{
-		public string SshUsername { get; set; }
-		public string SshPassword { get; set; }
-		public SshUser(string email)
+		public string SshUsername { get; private set; }
+		public string SshPassword { get; private set; }
+		public bool MinecraftServer { get; set; }
+		public bool DSTServer { get; set; }
+		public SshAccount(string email)
 		{
 			SshUsername = email.Replace("@", "");
 
@@ -39,10 +43,12 @@ namespace ServerPanel
 		}
 
 		[JsonConstructor]
-		public SshUser(string sshUsername, string sshPassword)
+		public SshAccount(string sshUsername, string sshPassword, bool minecraft, bool dst)
 		{
 			SshUsername = sshUsername;
 			SshPassword = sshPassword;
+			MinecraftServer = minecraft;
+			DSTServer = dst;
 		}
 	}
 }

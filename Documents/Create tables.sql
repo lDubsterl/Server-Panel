@@ -8,7 +8,8 @@ create table if not exists "Site accounts"
 create table if not exists "Ssh accounts"
 (
 	Id serial primary key,
-	Email varchar,
 	SshUsername varchar,
-	SshPassword varchar
+	SshPassword varchar,
+	Minecraft bool default false,
+	DST bool default false
 );

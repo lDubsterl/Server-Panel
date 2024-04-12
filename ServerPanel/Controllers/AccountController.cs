@@ -72,10 +72,14 @@ namespace ServerPanel.Controllers
 			UserAccount acc;
 			using (IDbConnection db = new NpgsqlConnection(connectionString))
 			{
-				acc = db.Query<UserAccount>("select * from \"Site accounts\" where Email = @username and Password = @password", new { username, password }).FirstOrDefault();
+			
+				acc = db.Query<UserAccount>("select * from \"Site accounts\" where Email = @username", new { username }).FirstOrDefault();
 			}
 			if (acc != null)
 			{
+				string passwordHash = acc.Password;
+				if (!BC.Verify(password, passwordHash))
+					return null;
 				var claims = new List<Claim>
 				{
 					new Claim(ClaimsIdentity.DefaultNameClaimType, acc.Email),

@@ -31,8 +31,6 @@ namespace ServerPanel.Controllers
 					return Json("User already registered");
 				string hashedPassword = BC.HashPassword(password);
 				db.Execute("insert into \"Site accounts\"(Email, Password) values (@email, @hashedPassword)", new { email, hashedPassword });
-				var sshUser = new SshAccount(email);
-				db.Execute("insert into \"Ssh accounts\"(SshUsername, SshPassword) values (@SshUsername, @SshPassword)", new { sshUser.SshUsername, sshUser.SshPassword });
 			}
 			return Json("Registered succesfully");
 		}

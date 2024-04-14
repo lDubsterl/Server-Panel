@@ -25,7 +25,7 @@ namespace ServerPanel.Controllers
 			string connectionString = "Server=127.0.0.1;User Id=postgres;Password=1;Port=5432;Database=SiteAccounts;";
 			using (IDbConnection db = new NpgsqlConnection(connectionString))
 			{
-				return db.Query<UserAccount>("select sshUsername, sshPassword, Minecraft, DST from \"Site accounts\" where Id = @id", new { id }).First();
+				return db.Query<UserAccount>("select * from \"Site accounts\" where Id = @id", new { id }).First();
 			}
 		}
 
@@ -36,24 +36,25 @@ namespace ServerPanel.Controllers
 			startInfo.WindowStyle = ProcessWindowStyle.Hidden;
 			startInfo.FileName = "cmd.exe";
 			startInfo.Arguments = $"/C {command}";
-			process.StartInfo.UseShellExecute = false;
-			process.StartInfo.RedirectStandardOutput = true;
+			startInfo.UseShellExecute = false;
+			startInfo.RedirectStandardOutput = true;
 			process.StartInfo = startInfo;
 			process.Start();
 			if (isContinuously)
 			{
-				string cmdResult = "", oldResult = "";
+				string oldResult = "";
 				while (!process.HasExited)
 				{
 					Thread.Sleep(2000);
-					cmdResult = process.StandardOutput.ReadToEnd();
+					string cmdResult = process.StandardOutput.ReadLine();
 					if (cmdResult != oldResult)
 						Console.WriteLine(cmdResult);
 					oldResult = cmdResult;
 				}
 			}
+			var executingResult = process.StandardOutput.ReadToEnd();
 			process.WaitForExit();
-			return process.StandardOutput.ReadToEnd();
+			return executingResult;
 		}
 
 		[Authorize, HttpPut("create/")]
@@ -64,8 +65,8 @@ namespace ServerPanel.Controllers
 				UserAccount accUser = db.Query<UserAccount>("select * from \"Site accounts\" where id = @id", new { id }).FirstOrDefault();
 				var serverDirectory = $"cd /d d:\\Servers\\{accUser.Email} && ";
 				ExecuteCommand($"cd /d d:\\Servers && mkdir {accUser.Email}");
-				db.Execute("update \"Ssh accounts\" set minecraft = true where id = @id", id);
-				ExecuteCommand(serverDirectory + "java -jar../forge-1.20.4-49.0.33-installer.jar --installServer", true);
+				db.Execute("update \"Site accounts\" set minecraft = true where id = @id", id);
+				ExecuteCommand(serverDirectory + "java -jar ../forge-1.20.4-49.0.33-installer.jar --installServer", true);
 				ExecuteCommand(serverDirectory + "java @libraries/net/minecraftforge/forge/1.20.4-49.0.33/win_args.txt %*", true);
 				var eula = ExecuteCommand(serverDirectory + "type eula.txt");
 				eula = eula.Replace("false", "true");
@@ -82,23 +83,22 @@ namespace ServerPanel.Controllers
 			ExecuteCommand($"rmdir d:\\Servers\\{user.Email} /s/q");
 			return new StatusCodeResult((int)HttpStatusCode.OK);
 		}
-		private void PrintConsole(object obj)
+
+		public static Dictionary<int, Process> serverCmdProcesses = new Dictionary<int, Process>();
+		private void PrintConsole(object cmdObj)
 		{
-			if (obj is ThreadArguments executingCommand)
+			Process cmd = (Process)cmdObj;
+			while (!cmd.HasExited)
 			{
-				while (sessionInfo[executingCommand.id].client.IsConnected)
-				{
-					Thread.Sleep(500);
-					var text = sessionInfo[executingCommand.id].stream.Read();
-					//Regex regex = new Regex("(\\w|\\/|\\.)\r\n(\\w|\\/|\\.)");
-					//text = regex.Replace(text, $"$1$2");
-					//regex = new Regex("\\u001b\\[K\\u001b\\[\\?25h\\u001b251|\\u001b\\[K|\\u001b\\[29;1H|\\u001b\\[28;1H|\\u001b\\[27;1H|" +
-					//	"\\u001b\\[24;1H|\\u001b\\[\\?25h|\\u001b\\[25l");
-					//text = regex.Replace(text, "");
-					if (text != "")
-						Console.WriteLine(text);
-				}
-				sessionInfo[executingCommand.id].client.Disconnect();
+				Thread.Sleep(500);
+				var text = cmd.StandardOutput.ReadLine();
+				//Regex regex = new Regex("(\\w|\\/|\\.)\r\n(\\w|\\/|\\.)");
+				//text = regex.Replace(text, $"$1$2");
+				//regex = new Regex("\\u001b\\[K\\u001b\\[\\?25h\\u001b251|\\u001b\\[K|\\u001b\\[29;1H|\\u001b\\[28;1H|\\u001b\\[27;1H|" +
+				//	"\\u001b\\[24;1H|\\u001b\\[\\?25h|\\u001b\\[25l");
+				//text = regex.Replace(text, "");
+				if (text != "")
+					Console.WriteLine(text);
 			}
 		}
 
@@ -107,46 +107,61 @@ namespace ServerPanel.Controllers
 		{
 			var user = GetUser(id);
 			var serverDirectory = $"cd /d d:\\Servers\\{user.Email} && ";
-			ShellStream shellStream = sshClient.CreateShellStream(string.Empty, 500, 0, 0, 0, 0);
 			Thread printingThread = new Thread(PrintConsole);
-			sessionInfo[id] = new SessionInfo(sshClient, shellStream);
-			shellStream.WriteLine($"cd /d d:\\Servers\\{sshUser.SshUsername}");
-			while (shellStream.Length != 0)
-				Thread.Sleep(500);
-			shellStream.WriteLine("java @libraries/net/minecraftforge/forge/1.20.4-49.0.33/win_args.txt %*");
-			while (shellStream.Length != 0)
-				Thread.Sleep(500);
-			printingThread.Start(new ThreadArguments(id, shellStream));
-			string directory = sshClient.RunCommand(serverDirectory + "dir /b").Result;
-			string[] foldersAndFiles = directory.Split("\r\n");
+			Process process = new();
+			ProcessStartInfo startInfo = new();
+			startInfo.WindowStyle = ProcessWindowStyle.Hidden;
+			startInfo.FileName = "cmd.exe";
+			startInfo.Arguments = "/C "+ serverDirectory + "java @libraries/net/minecraftforge/forge/1.20.4-49.0.33/win_args.txt nogui %*";
+			startInfo.UseShellExecute = false;
+			startInfo.RedirectStandardOutput = true;
+			startInfo.RedirectStandardInput = true;
+			process.StartInfo = startInfo;
+			process.Start();
+			serverCmdProcesses[id] = process;
+			printingThread.Start(process);
+			string directory = ExecuteCommand(serverDirectory + "dir /b");
+			string[] allFiles = directory.Split("\r\n");
+			LinkedList<string> formattedFoldersAndFiles = new();
+			foreach (var filename in allFiles)
+				if (!filename.Contains(".jar") && filename != "libraries")
+					formattedFoldersAndFiles.AddLast(filename);
+			string[] foldersAndFiles = new string[formattedFoldersAndFiles.Count];
+			int i = 0;
+			foreach (var filename in formattedFoldersAndFiles)
+				foldersAndFiles[i++] = filename;
 			return foldersAndFiles;
-			return null;
 		}
 
 		[Authorize, HttpPost("panel/general/")]
-		public StatusCodeResult ExecuteConsoleCommand(int id, string command)
+		public StatusCodeResult ExecuteServerCommand(int id, string command)
 		{
-			if (sessionInfo[id].client.IsConnected)
+			serverCmdProcesses[id].StandardInput.WriteLine(command);
+			if (command == "stop")
 			{
-				sessionInfo[id].stream.WriteLine(command);
-				if (command == "stop")
-				{
-					sessionInfo[id].client.Disconnect();
-					sessionInfo[id].stream.Dispose();
-					sessionInfo.Remove(id);
-				}
-				return new StatusCodeResult((int)HttpStatusCode.OK);
+				serverCmdProcesses[id].WaitForExit();
+				serverCmdProcesses.Remove(id);
 			}
-			else
-				return new StatusCodeResult((int)HttpStatusCode.InternalServerError);
+			return new StatusCodeResult((int)HttpStatusCode.OK);
 		}
 
 		[Authorize, HttpGet("panel/files/")]
-		public string ParseFile(int id, string name)
+		public object ParseFile(int id, string name)
 		{
 			UserAccount user = GetUser(id);
-			var fileContent = System.IO.File.ReadAllText($"d:\\Servers\\{user.Email}\\{name}");
-			return fileContent;
+			if (!name.Contains(@"d:\Servers\"))
+				name = $"d:\\Servers\\{user.Email}\\" + name;
+			if (System.IO.File.Exists(name))
+			{
+				return System.IO.File.ReadAllText(name);
+			}
+			if (System.IO.Directory.Exists(name))
+			{
+				var content = System.IO.Directory.GetFileSystemEntries(name);
+				foreach (var str in content)
+					str = str.Replace(@"\\", @"\");
+			}
+			return "";
 		}
 
 		[Authorize, HttpPatch("panel/files/")]

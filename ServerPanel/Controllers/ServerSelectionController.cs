@@ -11,13 +11,14 @@ using System;
 using System.Diagnostics;
 using ServerPanel.Models;
 using Microsoft.AspNetCore.Authorization;
+using System.ComponentModel.DataAnnotations;
 
 namespace ServerPanel.Controllers
 {
 
 	[Route("api/[controller]/{id}")]
 	[ApiController]
-	public class ServerSelectionController : ControllerBase
+	public class ServerSelectionController : Controller
 	{
 
 		UserAccount GetUser(int id)
@@ -45,7 +46,7 @@ namespace ServerPanel.Controllers
 				string oldResult = "";
 				while (!process.HasExited)
 				{
-					Thread.Sleep(2000);
+					Thread.Sleep(100);
 					string cmdResult = process.StandardOutput.ReadLine();
 					if (cmdResult != oldResult)
 						Console.WriteLine(cmdResult);
@@ -57,12 +58,28 @@ namespace ServerPanel.Controllers
 			return executingResult;
 		}
 
-		[Authorize, HttpPut("create/")]
-		public StatusCodeResult CreateServer(int id, char serverLiteral)
+		Process CreateCmdProcess(string cmdArguments)
+		{
+			Process proc = new();
+			ProcessStartInfo startInfo = new();
+			startInfo.WindowStyle = ProcessWindowStyle.Hidden;
+			startInfo.FileName = "cmd.exe";
+			startInfo.Arguments = cmdArguments;
+			startInfo.UseShellExecute = false;
+			startInfo.RedirectStandardOutput = true;
+			startInfo.RedirectStandardInput = true;
+			proc.StartInfo = startInfo;
+			return proc;
+		}
+
+		[Authorize, HttpPut("create/minecraft")]
+		public JsonResult CreateMinecraftServer(int id)
 		{
 			using (IDbConnection db = new NpgsqlConnection("Server=127.0.0.1;User Id=postgres;Password=1;Port=5432;Database=SiteAccounts;"))
 			{
 				UserAccount accUser = db.Query<UserAccount>("select * from \"Site accounts\" where id = @id", new { id }).FirstOrDefault();
+				if (accUser.MinecraftServer)
+					return Json("Server is already created");
 				var serverDirectory = $"cd /d d:\\Servers\\{accUser.Email} && ";
 				ExecuteCommand($"cd /d d:\\Servers && mkdir {accUser.Email}");
 				db.Execute("update \"Site accounts\" set minecraft = true where id = @id", id);
@@ -73,18 +90,75 @@ namespace ServerPanel.Controllers
 				var strings = eula.Split("\r\n");
 				ExecuteCommand(serverDirectory + $"echo {strings[2]}> eula.txt");
 			}
-			return new StatusCodeResult((int)HttpStatusCode.OK);
+			return Json("Created succesfully");
 		}
 
-		[Authorize, HttpDelete("delete/")]
-		public StatusCodeResult DeleteServer(int id)
+		[Authorize, HttpPut("create/dst")]
+		public JsonResult CreateDSTServer(int id, [Required] string serverName, string serverDesc, string password)
+		{
+			using (IDbConnection db = new NpgsqlConnection("Server=127.0.0.1;User Id=postgres;Password=1;Port=5432;Database=SiteAccounts;"))
+			{
+				UserAccount accUser = db.Query<UserAccount>("select * from \"Site accounts\" where id = @id", new { id }).FirstOrDefault();
+				if (accUser.DSTServer)
+					return Json("Server is already created");
+				var serverDirectory = $"C:\\Users\\Dubster\\Documents\\Klei\\DoNotStarveTogether\\";
+				System.IO.Directory.CreateDirectory(serverDirectory + accUser.Email);
+				System.IO.File.Copy(serverDirectory + "cluster_token.txt", serverDirectory + accUser.Email + "\\cluster_token.txt");
+				serverDirectory += accUser.Email;
+				System.IO.Directory.CreateDirectory(serverDirectory + "\\Master");
+				System.IO.Directory.CreateDirectory(serverDirectory + "\\Caves");
+				db.Execute("update \"Site accounts\" set dst = true where id = @id", id);
+				var ini = System.IO.File.ReadAllText("D:\\Servers\\DST templates\\master_server.txt");
+				System.IO.File.WriteAllText(serverDirectory + "\\Master\\server.ini", ini);
+				ini = System.IO.File.ReadAllText("D:\\Servers\\DST templates\\caves_server.txt");
+				System.IO.File.WriteAllText(serverDirectory + "\\Caves\\server.ini", ini);
+				ini = System.IO.File.ReadAllText("D:\\Servers\\DST templates\\caves_worldgen.txt");
+				System.IO.File.WriteAllText(serverDirectory + "\\Caves\\worldgenoverride.lua", ini);
+				var cluster = System.IO.File.ReadAllLines("D:\\Servers\\DST templates\\cluster_template.txt");
+				cluster[13] = $"cluster_name = {serverName}";
+				cluster[15] = $"cluster_description = {serverDesc}";
+				cluster[19] = $"cluster_password = {password}";
+				System.IO.File.WriteAllLines(serverDirectory + "\\cluster.ini", cluster);
+				var server = System.IO.File.ReadAllText("D:\\Servers\\DST templates\\Server_Master.txt");
+				server = server.Replace("MyDediServer", accUser.Email);
+				System.IO.File.WriteAllText(@$"D:\Games\Steam\steamapps\common\Don't Starve Together Dedicated Server\bin\Server_Master{accUser.Email}.bat", server);
+				server = System.IO.File.ReadAllText("D:\\Servers\\DST templates\\Server_Caves.txt");
+				server = server.Replace("MyDediServer", accUser.Email);
+				System.IO.File.WriteAllText(@$"D:\Games\Steam\steamapps\common\Don't Starve Together Dedicated Server\bin\Server_Caves{accUser.Email}.bat", server);
+			}
+			return Json("Created succesfully");
+		}
+
+		[Authorize, HttpDelete("delete/minecraft")]
+		public StatusCodeResult DeleteMinecraftServer(int id)
 		{
 			var user = GetUser(id);
-			ExecuteCommand($"rmdir d:\\Servers\\{user.Email} /s/q");
+			System.IO.Directory.Delete($"d:\\Servers\\{user.Email}", true);
+			using (IDbConnection db = new NpgsqlConnection("Server=127.0.0.1;User Id=postgres;Password=1;Port=5432;Database=SiteAccounts;"))
+			{
+				db.Execute("update \"Site accounts\" set minecraft = false where id = @id", id);
+			}
+			minecraftServerProcesses.Remove(id);
 			return new StatusCodeResult((int)HttpStatusCode.OK);
 		}
 
-		public static Dictionary<int, Process> serverCmdProcesses = new Dictionary<int, Process>();
+		[Authorize, HttpDelete("delete/dst")]
+		public StatusCodeResult DeleteDSTServer(int id)
+		{
+			var user = GetUser(id);
+			System.IO.Directory.Delete(@$"C:\Users\Dubster\Documents\Klei\DoNotStarveTogether\{user.Email}", true);
+			System.IO.File.Delete(@$"D:\Games\Steam\steamapps\common\Don't Starve Together Dedicated Server\bin\Server_Caves{user.Email}.bat");
+			System.IO.File.Delete(@$"D:\Games\Steam\steamapps\common\Don't Starve Together Dedicated Server\bin\Server_Master{user.Email}.bat");
+			using (IDbConnection db = new NpgsqlConnection("Server=127.0.0.1;User Id=postgres;Password=1;Port=5432;Database=SiteAccounts;"))
+			{
+				db.Execute("update \"Site accounts\" set dst = false where id = @id", id);
+			}
+			dstServerProcesses.Remove(id);
+				return new StatusCodeResult((int)HttpStatusCode.OK);
+		}
+
+		private static Dictionary<int, Process> minecraftServerProcesses = new Dictionary<int, Process>();
+		private static Dictionary<int, List<Process>> dstServerProcesses = new Dictionary<int, List<Process>>();
 		private void PrintConsole(object cmdObj)
 		{
 			Process cmd = (Process)cmdObj;
@@ -102,23 +176,15 @@ namespace ServerPanel.Controllers
 			}
 		}
 
-		[Authorize, HttpGet("panel/general/")]
-		public string[] StartServer(int id)
+		[Authorize, HttpGet("minecraft/panel/general/")]
+		public string[] StartMinecraftServer(int id)
 		{
 			var user = GetUser(id);
 			var serverDirectory = $"cd /d d:\\Servers\\{user.Email} && ";
 			Thread printingThread = new Thread(PrintConsole);
-			Process process = new();
-			ProcessStartInfo startInfo = new();
-			startInfo.WindowStyle = ProcessWindowStyle.Hidden;
-			startInfo.FileName = "cmd.exe";
-			startInfo.Arguments = "/C "+ serverDirectory + "java @libraries/net/minecraftforge/forge/1.20.4-49.0.33/win_args.txt nogui %*";
-			startInfo.UseShellExecute = false;
-			startInfo.RedirectStandardOutput = true;
-			startInfo.RedirectStandardInput = true;
-			process.StartInfo = startInfo;
+			Process process = CreateCmdProcess("/C " + serverDirectory + "java @libraries/net/minecraftforge/forge/1.20.4-49.0.33/win_args.txt nogui %*");
 			process.Start();
-			serverCmdProcesses[id] = process;
+			minecraftServerProcesses[id] = process;
 			printingThread.Start(process);
 			string directory = ExecuteCommand(serverDirectory + "dir /b");
 			string[] allFiles = directory.Split("\r\n");
@@ -133,20 +199,59 @@ namespace ServerPanel.Controllers
 			return foldersAndFiles;
 		}
 
-		[Authorize, HttpPost("panel/general/")]
-		public StatusCodeResult ExecuteServerCommand(int id, string command)
+		[Authorize, HttpGet("dst/panel/general/")]
+		public StatusCodeResult StartDSTServer(int id)
 		{
-			serverCmdProcesses[id].StandardInput.WriteLine(command);
+			var user = GetUser(id);
+			var serverDirectory = @"cd D:\Games\Steam\steamapps\common\""Don't Starve Together Dedicated Server""\bin && ";
+			Thread masterPrintingThread = new Thread(PrintConsole);
+			Thread cavesPrintingThread = new Thread(PrintConsole);
+			Process process1 = CreateCmdProcess("/C " + serverDirectory + $"Server_Master{user.Email}.bat");
+			Process process2 = CreateCmdProcess("/C " + serverDirectory + $"Server_Caves{user.Email}.bat");
+			process1.Start();
+			process2.Start();
+			dstServerProcesses[id] = new List<Process>
+			{
+				process1,
+				process2
+			};
+			masterPrintingThread.Start(process1);
+			cavesPrintingThread.Start(process2);
+			return new StatusCodeResult((int)HttpStatusCode.OK);
+		}
+
+		[Authorize, HttpPost("minecraft/panel/general/")]
+		public StatusCodeResult ExecuteMinecraftServerCommand(int id, string command)
+		{
+			var proc = minecraftServerProcesses[id];
+			proc.StandardInput.WriteLine(command);
 			if (command == "stop")
 			{
-				serverCmdProcesses[id].WaitForExit();
-				serverCmdProcesses.Remove(id);
+				proc.WaitForExit();
+				minecraftServerProcesses.Remove(id);
+			}
+			return new StatusCodeResult((int)HttpStatusCode.OK);
+		}
+
+		[Authorize, HttpPost("dst/panel/general/")]
+		public StatusCodeResult ExecuteDSTServerCommand(int id, string command, bool isMaster)
+		{
+			Process proc;
+			if (isMaster)
+				proc = dstServerProcesses[id].First();
+			else
+				proc = dstServerProcesses[id].Last();
+			proc.StandardInput.WriteLine(command);
+			if (command.Contains("c_shutdown("))
+			{
+				proc.WaitForExit();
+				minecraftServerProcesses.Remove(id);
 			}
 			return new StatusCodeResult((int)HttpStatusCode.OK);
 		}
 
 		[Authorize, HttpGet("panel/files/")]
-		public object ParseFile(int id, string name)
+		public object ParseFile(int id, [Required] string name)
 		{
 			UserAccount user = GetUser(id);
 			if (!name.Contains(@"d:\Servers\"))
@@ -158,14 +263,19 @@ namespace ServerPanel.Controllers
 			if (System.IO.Directory.Exists(name))
 			{
 				var content = System.IO.Directory.GetFileSystemEntries(name);
+				var formattedPathes = content;
+				int i = 0;
 				foreach (var str in content)
-					str = str.Replace(@"\\", @"\");
+				{
+					formattedPathes[i++] = str.Replace(@"\\", @"\");
+				}
+				return formattedPathes;
 			}
 			return "";
 		}
 
 		[Authorize, HttpPatch("panel/files/")]
-		public StatusCodeResult WriteFile(int id, string name, string fileContent)
+		public StatusCodeResult WriteFile(int id, [Required] string name, string fileContent)
 		{
 			UserAccount user = GetUser(id);
 			var text = fileContent.Split("\\r\\n");

@@ -12,6 +12,8 @@ using System.Diagnostics;
 using ServerPanel.Models;
 using Microsoft.AspNetCore.Authorization;
 using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.SignalR;
+using ServerPanel.Hub;
 
 namespace ServerPanel.Controllers
 {
@@ -20,7 +22,11 @@ namespace ServerPanel.Controllers
 	[ApiController]
 	public class ServerSelectionController : Controller
 	{
-
+		private IHubContext<ConsoleHub> consoleHub;
+		public ServerSelectionController(IHubContext<ConsoleHub> _consoleHub)
+		{
+			consoleHub = _consoleHub;
+		}
 		UserAccount GetUser(int id)
 		{
 			string connectionString = "Server=127.0.0.1;User Id=postgres;Password=1;Port=5432;Database=SiteAccounts;";
@@ -154,25 +160,39 @@ namespace ServerPanel.Controllers
 				db.Execute("update \"Site accounts\" set dst = false where id = @id", id);
 			}
 			dstServerProcesses.Remove(id);
-				return new StatusCodeResult((int)HttpStatusCode.OK);
+			return new StatusCodeResult((int)HttpStatusCode.OK);
 		}
 
 		private static Dictionary<int, Process> minecraftServerProcesses = new Dictionary<int, Process>();
 		private static Dictionary<int, List<Process>> dstServerProcesses = new Dictionary<int, List<Process>>();
-		private void PrintConsole(object cmdObj)
+
+		class TextSource
 		{
-			Process cmd = (Process)cmdObj;
-			while (!cmd.HasExited)
+			public Process process;
+			public int id;
+			public ConsoleType consoleType;
+
+			public TextSource(Process process, int id, ConsoleType consoleType)
 			{
-				Thread.Sleep(500);
-				var text = cmd.StandardOutput.ReadLine();
-				//Regex regex = new Regex("(\\w|\\/|\\.)\r\n(\\w|\\/|\\.)");
-				//text = regex.Replace(text, $"$1$2");
-				//regex = new Regex("\\u001b\\[K\\u001b\\[\\?25h\\u001b251|\\u001b\\[K|\\u001b\\[29;1H|\\u001b\\[28;1H|\\u001b\\[27;1H|" +
-				//	"\\u001b\\[24;1H|\\u001b\\[\\?25h|\\u001b\\[25l");
-				//text = regex.Replace(text, "");
-				if (text != "")
-					Console.WriteLine(text);
+				this.process = process;
+				this.id = id;
+				this.consoleType = consoleType;
+			}
+		}
+		private void PrintConsole(object textSource)
+		{
+			if (textSource is TextSource source)
+			{
+				var cmd = source.process;
+				while (!cmd.HasExited)
+				{
+					var text = cmd.StandardOutput.ReadLine();
+					if (text != "")
+					{
+						Console.WriteLine(text);
+						consoleHub.Clients.All.SendAsync("Send", text, source.id.ToString(), source.consoleType.ToString());
+					}
+				}
 			}
 		}
 
@@ -185,7 +205,7 @@ namespace ServerPanel.Controllers
 			Process process = CreateCmdProcess("/C " + serverDirectory + "java @libraries/net/minecraftforge/forge/1.20.4-49.0.33/win_args.txt nogui %*");
 			process.Start();
 			minecraftServerProcesses[id] = process;
-			printingThread.Start(process);
+			printingThread.Start(new TextSource(process, id, ConsoleType.Minecraft));
 			string directory = ExecuteCommand(serverDirectory + "dir /b");
 			string[] allFiles = directory.Split("\r\n");
 			LinkedList<string> formattedFoldersAndFiles = new();
@@ -215,8 +235,8 @@ namespace ServerPanel.Controllers
 				process1,
 				process2
 			};
-			masterPrintingThread.Start(process1);
-			cavesPrintingThread.Start(process2);
+			masterPrintingThread.Start(new TextSource(process1, id, ConsoleType.DstMaster));
+			cavesPrintingThread.Start(new TextSource(process2, id, ConsoleType.DstCaves));
 			return new StatusCodeResult((int)HttpStatusCode.OK);
 		}
 

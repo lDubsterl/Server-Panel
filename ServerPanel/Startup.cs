@@ -2,18 +2,12 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.HttpsPolicy;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using TokenApp;
 
 namespace ServerPanel
@@ -61,6 +55,12 @@ namespace ServerPanel
 				.Build();
 			});
 			services.AddControllers();
+			services.AddSignalR();
+			services.AddCors(options =>
+			{
+				options.AddPolicy("CORSPolicy", builder =>
+				builder.AllowAnyMethod().AllowAnyHeader().AllowCredentials().SetIsOriginAllowed((hosts) => true));
+			});
 			services.AddSwaggerGen(c =>
 			{
 				c.SwaggerDoc("v1", new OpenApiInfo { Title = "ServerPanel", Version = "v1" });
@@ -104,12 +104,17 @@ namespace ServerPanel
 
 			app.UseRouting();
 
+			app.UseCors();
+
+			app.UseFileServer();
+
 			app.UseAuthorization();
 
 			app.UseAuthentication();
 
 			app.UseEndpoints(endpoints =>
 			{
+				endpoints.MapHub<ConsoleHub>("/console");
 				endpoints.MapControllers();
 			});
 		}

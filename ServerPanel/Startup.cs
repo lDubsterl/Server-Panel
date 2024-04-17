@@ -9,7 +9,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using TokenApp;
-
+using Newtonsoft.Json;
 namespace ServerPanel
 {
 	public class Startup
@@ -54,7 +54,7 @@ namespace ServerPanel
 				.RequireAuthenticatedUser()
 				.Build();
 			});
-			services.AddControllers();
+			services.AddControllers().AddNewtonsoftJson();
 			services.AddSignalR();
 			services.AddCors(options =>
 			{

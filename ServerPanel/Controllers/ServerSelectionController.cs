@@ -13,7 +13,7 @@ using ServerPanel.Models;
 using Microsoft.AspNetCore.Authorization;
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.SignalR;
-using ServerPanel.Hub;
+using Newtonsoft.Json.Linq;
 
 namespace ServerPanel.Controllers
 {
@@ -241,9 +241,13 @@ namespace ServerPanel.Controllers
 		}
 
 		[Authorize, HttpPost("minecraft/panel/general/")]
-		public StatusCodeResult ExecuteMinecraftServerCommand(int id, string command)
+		public StatusCodeResult ExecuteMinecraftServerCommand(JObject obj)
 		{
-			var proc = minecraftServerProcesses[id];
+			int id = (int)obj.GetValue("id");
+			string command = (string)obj.GetValue("command");
+			var proc = minecraftServerProcesses.GetValueOrDefault(id);
+			if (proc is null)
+				return new StatusCodeResult((int)HttpStatusCode.Forbidden);
 			proc.StandardInput.WriteLine(command);
 			if (command == "stop")
 			{

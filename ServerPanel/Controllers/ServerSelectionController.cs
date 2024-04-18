@@ -190,7 +190,7 @@ namespace ServerPanel.Controllers
 					if (text != "")
 					{
 						Console.WriteLine(text);
-						consoleHub.Clients.All.SendAsync("Send", text, source.id.ToString(), source.consoleType.ToString());
+						consoleHub.Clients.All.SendAsync("Send", text + "\n", source.id.ToString(), source.consoleType.ToString());
 					}
 				}
 			}

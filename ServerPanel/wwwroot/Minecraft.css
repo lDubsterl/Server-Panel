@@ -41,6 +41,10 @@
   margin: -68px auto 60px 155px;
 }
 
+.hidden {
+    visibility: visible;
+}
+
 @media (max-width: 1199px) {
   .u-section-1 .u-form-1 {
     width: 678px;

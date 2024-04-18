@@ -1,6 +1,7 @@
 ﻿using Dapper;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
+using Newtonsoft.Json.Linq;
 using Npgsql;
 using ServerPanel.Models;
 using System;
@@ -36,8 +37,10 @@ namespace ServerPanel.Controllers
 		}
 
 		[HttpPost("/authorization")]
-		public IActionResult AuthorizeUser(string username, string password)
+		public IActionResult AuthorizeUser(JObject jsonData)
 		{
+			var username = (string)jsonData.GetValue("email");
+			var password = (string)jsonData.GetValue("password");
 			var identity = CheckUser(username, password);
 			if (identity == null)
 			{

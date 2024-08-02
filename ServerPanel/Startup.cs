@@ -10,6 +10,9 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using TokenApp;
 using Newtonsoft.Json;
+using System.Data;
+using Npgsql;
+using ServerPanel.Hub;
 namespace ServerPanel
 {
 	public class Startup
@@ -24,6 +27,7 @@ namespace ServerPanel
 		// This method gets called by the runtime. Use this method to add services to the container.
 		public void ConfigureServices(IServiceCollection services)
 		{
+			services.AddSingleton<DbConnection>();
 			services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 					.AddJwtBearer(options =>
 					{

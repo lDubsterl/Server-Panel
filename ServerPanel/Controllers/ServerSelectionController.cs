@@ -18,6 +18,7 @@ using ServerPanel.Hub;
 using Microsoft.Extensions.Configuration;
 using System.Threading.Tasks;
 
+using WPM = ServerPanel.ProcessCreators.WindowsProcessManager;
 
 namespace ServerPanel.Controllers
 {
@@ -43,49 +44,11 @@ namespace ServerPanel.Controllers
 		}
 		UserAccount GetUser(int id)
 		{
-			return _db.Query<UserAccount>("select * from \"Site accounts\" where Id = @id", new { id }).First();
-		}
-
-		string ExecuteCommand(string command, bool isContinuously = false)
-		{
-			Process process = new();
-			ProcessStartInfo startInfo = new();
-			startInfo.WindowStyle = ProcessWindowStyle.Hidden;
-			startInfo.FileName = "cmd.exe";
-			startInfo.Arguments = command;
-			startInfo.UseShellExecute = false;
-			startInfo.RedirectStandardOutput = true;
-			process.StartInfo = startInfo;
-			process.Start();
-			if (isContinuously)
+			string connectionString = "Server=127.0.0.1;User Id=postgres;Password=1;Port=5432;Database=SiteAccounts;";
+			using (IDbConnection db = new NpgsqlConnection(connectionString))
 			{
-				string oldResult = "";
-				while (!process.HasExited)
-				{
-					Thread.Sleep(100);
-					string cmdResult = process.StandardOutput.ReadLine();
-					if (cmdResult != oldResult)
-						Console.WriteLine(cmdResult);
-					oldResult = cmdResult;
-				}
+				return db.Query<UserAccount>("select * from \"Site accounts\" where Id = @id", new { id }).First();
 			}
-			var executingResult = process.StandardOutput.ReadToEnd();
-			process.WaitForExit();
-			return executingResult;
-		}
-
-		Process CreateCmdProcess(string cmdArguments)
-		{
-			Process proc = new();
-			ProcessStartInfo startInfo = new();
-			startInfo.WindowStyle = ProcessWindowStyle.Hidden;
-			startInfo.FileName = "cmd.exe";
-			startInfo.Arguments = cmdArguments;
-			startInfo.UseShellExecute = false;
-			startInfo.RedirectStandardOutput = true;
-			startInfo.RedirectStandardInput = true;
-			proc.StartInfo = startInfo;
-			return proc;
 		}
 
 		[Authorize, HttpPut]
@@ -200,10 +163,11 @@ namespace ServerPanel.Controllers
 			var user = GetUser(id);
 			var serverDirectory = _serversRoot + user.Email;
 			Thread printingThread = new Thread(PrintConsole);
-			Process process = CreateCmdProcess(serverDirectory + "java @libraries/net/minecraftforge/forge/1.20.4-49.0.33/win_args.txt nogui %*");
+			Process process = WPM.CreateCmdProcess("/C " + serverDirectory + "java @libraries/net/minecraftforge/forge/1.20.4-49.0.33/win_args.txt nogui %*");
 			process.Start();
 			minecraftServerProcesses[id] = process;
-			string directory = ExecuteCommand(serverDirectory + "dir /b");
+			printingThread.Start(new TextSource(process, id, ConsoleType.Minecraft));
+			string directory = WPM.ExecuteCommand(serverDirectory + "dir /b");
 			string[] allFiles = directory.Split("\r\n");
 			LinkedList<string> formattedFoldersAndFiles = new();
 			foreach (var filename in allFiles)

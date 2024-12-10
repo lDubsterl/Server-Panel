@@ -15,13 +15,17 @@ function authorizationPOST() {
             serverResponse = response.data;
             sessionStorage.setItem("id", serverResponse.id);
             sessionStorage.setItem("token", serverResponse.access_token);
-            return true;
+            window.location.href = "Minecraft.html";
         })
         .catch(error => {
             console.log(error);
-            return false;
         });
-    return false;
+}
+
+function logout() {
+    sessionStorage.removeItem("id");
+    sessionStorage.removeItem("token");
+    return true;
 }
 
 function sendCommandPOST(url, id, command) {

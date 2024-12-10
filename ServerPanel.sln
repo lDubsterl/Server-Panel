@@ -1,9 +1,13 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.34601.136
+# Visual Studio Version 17
+VisualStudioVersion = 17.11.35219.272
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ServerPanel", "ServerPanel\ServerPanel.csproj", "{F9B38B2B-FCEB-4979-8C97-35F7E2B602BC}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ServerPanel", "ServerPanel\ServerPanel.csproj", "{F9B38B2B-FCEB-4979-8C97-35F7E2B602BC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Panel.Infrastructure", "Panel.Infrastructure\Panel.Infrastructure.csproj", "{B20D6665-1CE3-42D7-904E-A9E6AA1C37AD}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Panel.Application", "Panel.Application\Panel.Application.csproj", "{D8A150A5-BD35-457F-BC76-78CD090AB18E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +19,14 @@ Global
 		{F9B38B2B-FCEB-4979-8C97-35F7E2B602BC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F9B38B2B-FCEB-4979-8C97-35F7E2B602BC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F9B38B2B-FCEB-4979-8C97-35F7E2B602BC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B20D6665-1CE3-42D7-904E-A9E6AA1C37AD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B20D6665-1CE3-42D7-904E-A9E6AA1C37AD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B20D6665-1CE3-42D7-904E-A9E6AA1C37AD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B20D6665-1CE3-42D7-904E-A9E6AA1C37AD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D8A150A5-BD35-457F-BC76-78CD090AB18E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D8A150A5-BD35-457F-BC76-78CD090AB18E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D8A150A5-BD35-457F-BC76-78CD090AB18E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D8A150A5-BD35-457F-BC76-78CD090AB18E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

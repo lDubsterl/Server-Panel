@@ -15,6 +15,8 @@ using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.SignalR;
 using Newtonsoft.Json.Linq;
 
+using WPM = ServerPanel.ProcessCreators.WindowsProcessManager;
+
 namespace ServerPanel.Controllers
 {
 
@@ -36,48 +38,6 @@ namespace ServerPanel.Controllers
 			}
 		}
 
-		string ExecuteCommand(string command, bool isContinuously = false)
-		{
-			Process process = new();
-			ProcessStartInfo startInfo = new();
-			startInfo.WindowStyle = ProcessWindowStyle.Hidden;
-			startInfo.FileName = "cmd.exe";
-			startInfo.Arguments = $"/C {command}";
-			startInfo.UseShellExecute = false;
-			startInfo.RedirectStandardOutput = true;
-			process.StartInfo = startInfo;
-			process.Start();
-			if (isContinuously)
-			{
-				string oldResult = "";
-				while (!process.HasExited)
-				{
-					Thread.Sleep(100);
-					string cmdResult = process.StandardOutput.ReadLine();
-					if (cmdResult != oldResult)
-						Console.WriteLine(cmdResult);
-					oldResult = cmdResult;
-				}
-			}
-			var executingResult = process.StandardOutput.ReadToEnd();
-			process.WaitForExit();
-			return executingResult;
-		}
-
-		Process CreateCmdProcess(string cmdArguments)
-		{
-			Process proc = new();
-			ProcessStartInfo startInfo = new();
-			startInfo.WindowStyle = ProcessWindowStyle.Hidden;
-			startInfo.FileName = "cmd.exe";
-			startInfo.Arguments = cmdArguments;
-			startInfo.UseShellExecute = false;
-			startInfo.RedirectStandardOutput = true;
-			startInfo.RedirectStandardInput = true;
-			proc.StartInfo = startInfo;
-			return proc;
-		}
-
 		[Authorize, HttpPut("create/minecraft")]
 		public JsonResult CreateMinecraftServer(int id)
 		{
@@ -87,14 +47,14 @@ namespace ServerPanel.Controllers
 				if (accUser.MinecraftServer)
 					return Json("Server is already created");
 				var serverDirectory = $"cd /d d:\\Servers\\{accUser.Email} && ";
-				ExecuteCommand($"cd /d d:\\Servers && mkdir {accUser.Email}");
+				WPM.ExecuteCommand($"cd /d d:\\Servers && mkdir {accUser.Email}");
 				db.Execute("update \"Site accounts\" set minecraft = true where id = @id", id);
-				ExecuteCommand(serverDirectory + "java -jar ../forge-1.20.4-49.0.33-installer.jar --installServer", true);
-				ExecuteCommand(serverDirectory + "java @libraries/net/minecraftforge/forge/1.20.4-49.0.33/win_args.txt %*", true);
-				var eula = ExecuteCommand(serverDirectory + "type eula.txt");
+				WPM.ExecuteCommand(serverDirectory + "java -jar ../forge-1.20.4-49.0.33-installer.jar --installServer", true);
+				WPM.ExecuteCommand(serverDirectory + "java @libraries/net/minecraftforge/forge/1.20.4-49.0.33/win_args.txt %*", true);
+				var eula = WPM.ExecuteCommand(serverDirectory + "type eula.txt");
 				eula = eula.Replace("false", "true");
 				var strings = eula.Split("\r\n");
-				ExecuteCommand(serverDirectory + $"echo {strings[2]}> eula.txt");
+				WPM.ExecuteCommand(serverDirectory + $"echo {strings[2]}> eula.txt");
 			}
 			return Json("Created succesfully");
 		}
@@ -127,10 +87,10 @@ namespace ServerPanel.Controllers
 				System.IO.File.WriteAllLines(serverDirectory + "\\cluster.ini", cluster);
 				var server = System.IO.File.ReadAllText("D:\\Servers\\DST templates\\Server_Master.txt");
 				server = server.Replace("MyDediServer", accUser.Email);
-				System.IO.File.WriteAllText(@$"D:\Games\Steam\steamapps\common\Don't Starve Together Dedicated Server\bin\Server_Master{accUser.Email}.bat", server);
+				System.IO.File.WriteAllText(@$"D:\Soft\Steam\steamapps\common\Don't Starve Together Dedicated Server\bin\Server_Master{accUser.Email}.bat", server);
 				server = System.IO.File.ReadAllText("D:\\Servers\\DST templates\\Server_Caves.txt");
 				server = server.Replace("MyDediServer", accUser.Email);
-				System.IO.File.WriteAllText(@$"D:\Games\Steam\steamapps\common\Don't Starve Together Dedicated Server\bin\Server_Caves{accUser.Email}.bat", server);
+				System.IO.File.WriteAllText(@$"D:\Soft\Steam\steamapps\common\Don't Starve Together Dedicated Server\bin\Server_Caves{accUser.Email}.bat", server);
 			}
 			return Json("Created succesfully");
 		}
@@ -202,11 +162,11 @@ namespace ServerPanel.Controllers
 			var user = GetUser(id);
 			var serverDirectory = $"cd /d d:\\Servers\\{user.Email} && ";
 			Thread printingThread = new Thread(PrintConsole);
-			Process process = CreateCmdProcess("/C " + serverDirectory + "java @libraries/net/minecraftforge/forge/1.20.4-49.0.33/win_args.txt nogui %*");
+			Process process = WPM.CreateCmdProcess("/C " + serverDirectory + "java @libraries/net/minecraftforge/forge/1.20.4-49.0.33/win_args.txt nogui %*");
 			process.Start();
 			minecraftServerProcesses[id] = process;
 			printingThread.Start(new TextSource(process, id, ConsoleType.Minecraft));
-			string directory = ExecuteCommand(serverDirectory + "dir /b");
+			string directory = WPM.ExecuteCommand(serverDirectory + "dir /b");
 			string[] allFiles = directory.Split("\r\n");
 			LinkedList<string> formattedFoldersAndFiles = new();
 			foreach (var filename in allFiles)
@@ -223,11 +183,11 @@ namespace ServerPanel.Controllers
 		public StatusCodeResult StartDSTServer(int id)
 		{
 			var user = GetUser(id);
-			var serverDirectory = @"cd D:\Games\Steam\steamapps\common\""Don't Starve Together Dedicated Server""\bin && ";
+			var serverDirectory = @"cd D:\Soft\Steam\steamapps\common\""Don't Starve Together Dedicated Server""\bin && ";
 			Thread masterPrintingThread = new Thread(PrintConsole);
 			Thread cavesPrintingThread = new Thread(PrintConsole);
-			Process process1 = CreateCmdProcess("/C " + serverDirectory + $"Server_Master{user.Email}.bat");
-			Process process2 = CreateCmdProcess("/C " + serverDirectory + $"Server_Caves{user.Email}.bat");
+			Process process1 = WPM.CreateCmdProcess("/C " + serverDirectory + $"Server_Master{user.Email}.bat");
+			Process process2 = WPM.	CreateCmdProcess("/C " + serverDirectory + $"Server_Caves{user.Email}.bat");
 			process1.Start();
 			process2.Start();
 			dstServerProcesses[id] = new List<Process>

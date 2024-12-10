@@ -3,22 +3,18 @@
 <head>
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<meta charset="utf-8">
-	<meta name="keywords" content="заголовка">
+	<meta name="keywords" content="ServerCommander">
 	<meta name="description" content="">
-	<title>Minecraft</title>
+	<title>Главная</title>
 	<link rel="stylesheet" href="nicepage.css" media="screen">
-	<link rel="stylesheet" href="Minecraft.css" media="screen">
+	<link rel="stylesheet" href="Главная.css" media="screen">
 	<script class="u-script" type="text/javascript" src="jquery.js" defer=""></script>
 	<script class="u-script" type="text/javascript" src="nicepage.js" defer=""></script>
 	<meta name="generator" content="Nicepage 6.7.6, nicepage.com">
-	<meta name="referrer" content="origin">
-	<script src="loginScript.js"></script>
 	<link id="u-theme-google-font" rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:100,100i,300,300i,400,400i,500,500i,700,700i,900,900i|Open+Sans:300,300i,400,400i,500,500i,600,600i,700,700i,800,800i">
 
 
-
-	<script type="application/ld+json">
-		{
+	<script type="application/ld+json">		{
 				"@context": "http://schema.org",
 				"@type": "Organization",
 				"name": "Site1",
@@ -26,7 +22,7 @@
 				"sameAs": []
 		}</script>
 	<meta name="theme-color" content="#478ac9">
-	<meta property="og:title" content="Minecraft">
+	<meta property="og:title" content="Главная">
 	<meta property="og:description" content="">
 	<meta property="og:type" content="website">
 	<meta data-intl-tel-input-cdn-path="intlTelInput/">
@@ -50,6 +46,7 @@
 						</svg>
 					</a>
 				</div>
+				<script src="loginScript.js"></script>
 				<div class="u-custom-menu u-nav-container">
 					<ul class="u-nav u-unstyled u-nav-1">
 						<li class="u-nav-item">
@@ -58,17 +55,34 @@
 						<li class="u-nav-item">
 							<a class="u-button-style u-nav-link u-text-active-palette-1-base u-text-hover-palette-2-base" style="padding: 10px 22px;">Аккаунт</a>
 							<div class="u-nav-popup">
-								<ul class="u-h-spacing-8 u-nav u-unstyled u-v-spacing-10">
+								<ul class="u-h-spacing-8 u-nav u-unstyled u-v-spacing-10" id="List">
 									<li class="u-nav-item">
-										<a class="u-button-style u-nav-link u-white" href="Создание сервера.html">Создание сервера</a>
+										<a class="u-button-style u-nav-link u-white" id="registration" href="Регистрация.html">Регистрация</a>
 									</li>
 									<li class="u-nav-item">
-										<a class="u-button-style u-nav-link u-white" href="Главная.html">Список серверов</a>
+										<a class="u-button-style u-nav-link u-white" onclick="return logout()" href="Главная.html">Список серверов</a>
 									</li>
 									<li class="u-nav-item">
-										<a class="u-button-style u-nav-link u-white" onclick="return logout()" href="Главная.html">Выход</a>
+										<a class="u-button-style u-nav-link u-white" id="login" href="Вход.html">Вход</a>
 									</li>
 								</ul>
+								<script>
+									if (sessionStorage["token"] != undefined) {
+										let loginBtn = document.getElementById("login");
+										loginBtn.textContent = "Выход";
+										loginBtn.href = "Главная.html";
+										let list = document.getElementById("List");
+										list.children[1].style.display = "visible";
+										loginBtn.onclick = function () { return logout() };
+										let regBtn = document.getElementById("registration");
+										regBtn.textContent = "Создание сервера";
+										/*regBtn.href = "Создание сервера.html";*/
+									}
+									else {
+										let list = document.getElementById("List");
+										list.children[1].style.display = "none";
+									}
+								</script>
 							</div>
 						</li>
 					</ul>
@@ -76,27 +90,23 @@
 			</nav>
 		</div>
 	</header>
-	<section class="u-clearfix u-white u-section-1" id="sec-98b1">
-		<div class="u-clearfix u-sheet u-sheet-1">
-			<div class="u-form u-form-1">
-				<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
-				<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/5.0.17/signalr.min.js"></script>
-				<script src="SignalrConnection.js"></script>
-				<form action="#" class="u-clearfix u-form-spacing-10 u-form-vertical u-inner-form" source="email" name="form" style="padding: 10px;" redirect="true">
-					<div class="u-form-group u-form-textarea u-form-group-1">
-						<label for="textarea-4e7d" class="u-label">Консоль</label>
-						<textarea disabled rows="10" cols="50" id="Minecraft" name="textarea" class="u-border-2 u-border-palette-5-light-1 u-grey-90 u-input u-input-rectangle u-radius u-text-white u-input-1"></textarea>
+	<section class="u-align-center u-clearfix u-container-align-center u-section-1" id="sec-0de5">
+		<div class="u-clearfix u-sheet u-valign-middle u-sheet-1">
+			<div class="data-layout-selected u-clearfix u-expanded-width u-gutter-0 u-layout-wrap u-layout-wrap-1">
+				<div class="u-layout" style="">
+					<div class="u-layout-row" style="">
+						<div class="u-align-left u-container-style u-image u-layout-cell u-left-cell u-size-30 u-size-xs-60 u-image-1" src="" data-image-width="5000" data-image-height="3220">
+							<div class="u-container-layout u-valign-middle u-container-layout-1" src=""></div>
+						</div>
+						<div class="u-align-left u-container-align-left u-container-style u-custom-color-7 u-layout-cell u-radius u-right-cell u-shape-round u-size-30 u-size-xs-60 u-layout-cell-2">
+							<div class="u-container-layout u-container-layout-2">
+								<h2 class="u-align-left u-text u-text-default u-text-1">ServerCommander</h2>
+								<p class="u-align-left u-text u-text-2">Сайт призванный облегчить создание и управление игорвых серверов. На данный момент ServerCommander позволит вам взаимодействовать с такими играми как: Minecraft и Don't Starve Together.</p>
+							</div>
+						</div>
 					</div>
-					<div class="u-form-group u-form-group-2">
-						<label for="text-e521" class="u-label">Ввод команд</label>
-						<input type="text" placeholder="Введите команду" id="text-e521" name="text" class="u-border-2 u-border-palette-5-light-1 u-grey-90 u-input u-input-rectangle u-radius u-text-white u-input-2">
-					</div>
-					<div class="u-align-right u-form-group u-form-submit">
-						<a href="#" id="startBtn" onclick="startMinecraftServer()" class="u-btn u-btn-round u-btn-submit u-button-style u-custom-color-7 u-radius u-btn-1">Запуск Сервера</a>
-					</div>
-				</form>
+				</div>
 			</div>
-			<a href="#" onclick="sendCommandToMinecraft()" class="u-btn u-btn-round u-button-style u-custom-color-7 u-hover-custom-color-8 u-radius u-btn-2">Отправить</a>
 		</div>
 	</section>
 

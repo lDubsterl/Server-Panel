@@ -1,27 +1,26 @@
-﻿using Panel.Application.AuthenticationRequests;
+﻿using Microsoft.AspNetCore.Identity.Data;
+using Microsoft.AspNetCore.Mvc;
+using Panel.Application.AuthenticationRequests;
 using Panel.Application.Interfaces.Services;
-using Panel.Domain.Entities;
-using Panel.Persistence.Contexts;
-using Microsoft.AspNetCore.App;
-using Microsoft.EntityFrameworkCore;
+using Panel.Domain.Interfaces.Repositories;
+using Panel.Domain.Models;
 
 namespace Panel.Infrastructure.Services
 {
 	public class AuthenticationService : IAuthenticationService
 	{
-		private readonly LibraryDbContext _db;
 		private readonly ITokenService tokenService;
+		private readonly IUnitOfWork _unitOfWork;
 
-		public AuthenticationService(LibraryDbContext tasksDbContext, ITokenService tokenService)
+		public AuthenticationService(ITokenService tokenService, IUnitOfWork unitOfWork)
 		{
-			this._db = tasksDbContext;
 			this.tokenService = tokenService;
+			_unitOfWork = unitOfWork;
 		}
 
 		public async Task<IActionResult> LoginAsync(Login loginRequest)
 		{
-			var user = _db.Users.SingleOrDefault(user => user.Email == loginRequest.Email);
-
+			var user = await _unitOfWork.Repository<UserAccount>("Site accounts").GetByFieldAsync("Email", loginRequest.Email);
 			if (user == null)
 			{
 				return new BadRequestObjectResult(new { Message = "Email not found" });
@@ -40,29 +39,29 @@ namespace Panel.Infrastructure.Services
 
 		public async Task<IActionResult> LogoutAsync(int userId)
 		{
-			var refreshToken = await _db.RefreshTokens.FirstOrDefaultAsync(o => o.UserId == userId);
+			var repository = _unitOfWork.Repository<RefreshToken>("RefreshTokens");
+			var refreshToken = await repository.GetByFieldAsync("UserId", userId);
 
 			if (refreshToken == null)
 			{
 				return new OkResult();
 			}
 
-			_db.RefreshTokens.Remove(refreshToken);
+			await repository.DeleteAsync(refreshToken.Id);
 
-			var saveResponse = await _db.SaveChangesAsync();
-
-			if (saveResponse >= 0)
-			{
+			//if (saveResponse >= 0)
+			//{
 				return new OkResult();
-			}
+			//}
 
-			return new BadRequestObjectResult(new { Message = "Unable to logout user" });
+			//return new BadRequestObjectResult(new { Message = "Unable to logout user" });
 
 		}
 
 		public async Task<IActionResult> SignUpAsync(SignUp signupRequest)
 		{
-			var existingUser = await _db.Users.SingleOrDefaultAsync(user => user.Email == signupRequest.Email);
+			var repository = _unitOfWork.Repository<UserAccount>("Site accounts");
+			var existingUser = await repository.GetByFieldAsync("Email", signupRequest.Email);
 
 			if (existingUser != null)
 			{
@@ -82,25 +81,22 @@ namespace Panel.Infrastructure.Services
 			var salt = PasswordBuilder.GetSecureSalt();
 			var passwordHash = PasswordBuilder.HashUsingPbkdf2(signupRequest.Password, salt);
 
-			var user = new User
+			var user = new UserAccount
 			{
 				Email = signupRequest.Email,
 				Password = passwordHash,
 				PasswordSalt = Convert.ToBase64String(salt),
-				Ts = signupRequest.Ts,
 				Role = signupRequest.Role,
 			};
 
-			await _db.Users.AddAsync(user);
+			await repository.AddAsync(user);
 
-			var saveResponse = await _db.SaveChangesAsync();
-
-			if (saveResponse >= 0)
-			{
+			//if (saveResponse >= 0)
+			//{
 				return new OkObjectResult(new { data = user.Email, Message = $"{user.Email} Registered successfully" });
-			}
+			//}
 
-			return new BadRequestObjectResult(new { Message = "Unable to save the user" });
+			//return new BadRequestObjectResult(new { Message = "Unable to save the user" });
 		}
 	}
 }

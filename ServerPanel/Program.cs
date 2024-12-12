@@ -6,6 +6,10 @@ using TokenApp;
 using Microsoft.OpenApi.Models;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Hosting;
+using Panel.Infrastructure.DbConfigurations;
+using Panel.Domain.Models;
+using Panel.Domain.DbConfigurations;
+using Panel.Infrastructure.Hubs;
 
 namespace ServerPanel
 {
@@ -42,6 +46,7 @@ namespace ServerPanel
 					});
 			services.AddAuthorization();
 			services.AddControllers().AddNewtonsoftJson();
+			services.AddScoped(typeof(IDbConfiguration<>), typeof(PostgresConfiguration));
 			services.AddSignalR();
 			services.AddCors(options =>
 			{
@@ -75,8 +80,9 @@ namespace ServerPanel
 					}
 				});
 			});
-
 			var app = builder.Build();
+
+			RefreshToken.Create(app.Configuration, app.Services.GetService(typeof(IDbConfiguration<>)))
 
 			if (app.Environment.IsDevelopment())
 			{

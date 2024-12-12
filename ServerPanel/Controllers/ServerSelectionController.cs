@@ -1,194 +1,84 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using System.Data;
-using System.Linq;
-using Renci.SshNet;
-using Dapper;
-using Npgsql;
-using System.Threading;
-using System.Net;
-using System.Collections.Generic;
-using System;
-using System.Diagnostics;
-using ServerPanel.Models;
+﻿using MediatR;
 using Microsoft.AspNetCore.Authorization;
-using System.ComponentModel.DataAnnotations;
-using Microsoft.AspNetCore.SignalR;
-using Newtonsoft.Json.Linq;
-using ServerPanel.Hub;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
+using Newtonsoft.Json.Linq;
+using Panel.Application.Features;
+using Panel.Application.Interfaces.Services;
+using Panel.Infrastructure.Hubs;
+using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.Diagnostics;
+using System.Linq;
+using System.Net;
+using System.Threading;
 using System.Threading.Tasks;
-
-using WPM = ServerPanel.ProcessCreators.WindowsProcessManager;
 
 namespace ServerPanel.Controllers
 {
 
 	[Route("api/[controller]/{id}/[action]")]
-	[ApiController]
+	[ApiController, Authorize]
 	public class ServerSelectionController : Controller
 	{
-		private IHubContext<ConsoleHub> _consoleHub;
+		private readonly IConsoleHub _consoleHub;
+		private readonly string _dstDedicatedServerRoot;
+		private readonly string _serversRoot;
+		private readonly IConfiguration _config;
 
-		private NpgsqlConnection _db;
-
-		private string _dstDedicatedServerRoot;
-		private string _serversRoot;
-		private IConfiguration _config;
-		public ServerSelectionController(IConfiguration config, IHubContext<ConsoleHub> consoleHub, DbConnection db)
+		private readonly IMediator _mediator;
+		public ServerSelectionController(IConfiguration config, ConsoleHub consoleHub, IMediator mediator)
 		{
 			_dstDedicatedServerRoot = config["DST_CLI_Directory"];
 			_serversRoot = config["ServersDirectory"];
 			_config = config;
 			_consoleHub = consoleHub;
-			_db = db.connection;
-		}
-		UserAccount GetUser(int id)
-		{
-			string connectionString = "Server=127.0.0.1;User Id=postgres;Password=1;Port=5432;Database=SiteAccounts;";
-			using (IDbConnection db = new NpgsqlConnection(connectionString))
-			{
-				return db.Query<UserAccount>("select * from \"Site accounts\" where Id = @id", new { id }).First();
-			}
+			_mediator = mediator;
 		}
 
-		[Authorize, HttpPut]
-		public JsonResult CreateMinecraftServer(int id)
+		[HttpPut]
+		public async Task<IActionResult> CreateMinecraftServer(int id)
 		{
-			UserAccount accUser = _db.Query<UserAccount>("select * from \"Site accounts\" where id = @id", id).FirstOrDefault();
-			if (accUser.MinecraftServer)
-				return Json("Server is already created");
-			var serverDirectory = _serversRoot + accUser.Email;
-			ExecuteCommand($"cd /d {_serversRoot} && mkdir {accUser.Email}");
-			_db.Execute("update \"Site accounts\" set minecraft = true where id = @id", id);
-			ExecuteCommand(serverDirectory + "java -jar ../forge-1.20.4-49.0.33-installer.jar --installServer", true);
-			ExecuteCommand(serverDirectory + "java @libraries/net/minecraftforge/forge/1.20.4-49.0.33/win_args.txt %*", true);
-			var eula = ExecuteCommand(serverDirectory + "type eula.txt");
-			eula = eula.Replace("false", "true");
-			var strings = eula.Split("\r\n");
-			ExecuteCommand(serverDirectory + $"echo {strings[2]}> eula.txt");
-			return Json("Created succesfully");
+			return await _mediator.Send(new CreateMinecraftServer(id));
 		}
 
-		[Authorize, HttpPut]
-		public JsonResult CreateDSTServer(int id, [Required] string serverName, string serverDesc, string password)
+		[HttpPut]
+		public async Task<IActionResult> CreateDSTServer(CreateDSTServer request)
 		{
-			UserAccount accUser = _db.Query<UserAccount>("select * from \"Site accounts\" where id = @id", new { id }).FirstOrDefault();
-			if (accUser.DSTServer)
-				return Json("Server is already created");
-			var serverDirectory = _config["DSTServerDirectory"];
-			System.IO.Directory.CreateDirectory(serverDirectory + accUser.Email);
-			System.IO.File.Copy(serverDirectory + "cluster_token.txt", serverDirectory + accUser.Email + "\\cluster_token.txt");
-			serverDirectory += accUser.Email + "\\";
-			System.IO.Directory.CreateDirectory(serverDirectory + "Master");
-			System.IO.Directory.CreateDirectory(serverDirectory + "Caves");
-			_db.Execute("update \"Site accounts\" set dst = true where id = @id", id);
-			var ini = System.IO.File.ReadAllText($"{_serversRoot}DST templates\\master_server.txt");
-			System.IO.File.WriteAllText(serverDirectory + "Master\\server.ini", ini);
-			ini = System.IO.File.ReadAllText($"{_serversRoot}DST templates\\caves_server.txt");
-			System.IO.File.WriteAllText(serverDirectory + "Caves\\server.ini", ini);
-			ini = System.IO.File.ReadAllText($"{_serversRoot}DST templates\\caves_worldgen.txt");
-			System.IO.File.WriteAllText(serverDirectory + "Caves\\worldgenoverride.lua", ini);
-			var cluster = System.IO.File.ReadAllLines($"{_serversRoot}DST templates\\cluster_template.txt");
-			cluster[13] = $"cluster_name = {serverName}";
-			cluster[15] = $"cluster_description = {serverDesc}";
-			cluster[19] = $"cluster_password = {password}";
-			System.IO.File.WriteAllLines(serverDirectory + "cluster.ini", cluster);
-			var server = System.IO.File.ReadAllText($"{_serversRoot}DST templates\\Server_Master.txt");
-			server = server.Replace("MyDediServer", accUser.Email);
-			System.IO.File.WriteAllText($"{_dstDedicatedServerRoot}Don't Starve Together Dedicated Server\\bin\\Server_Master{accUser.Email}.bat", server);
-			server = System.IO.File.ReadAllText($"{_serversRoot}DST templates\\Server_Caves.txt");
-			server = server.Replace("MyDediServer", accUser.Email);
-			System.IO.File.WriteAllText(@$"{_dstDedicatedServerRoot}Don't Starve Together Dedicated Server\\bin\\Server_Caves{accUser.Email}.bat", server);
-			return Json("Created succesfully");
+			return await _mediator.Send(request);
 		}
 
-		[Authorize, HttpDelete]
-		public StatusCodeResult DeleteMinecraftServer(int id)
+		[HttpDelete]
+		public async Task<IActionResult> DeleteMinecraftServer(int id)
 		{
-			var user = GetUser(id);
-			System.IO.Directory.Delete(_serversRoot + user.Email, true);
-			_db.Execute("update \"Site accounts\" set minecraft = false where id = @id", id);
-			return new StatusCodeResult((int)HttpStatusCode.OK);
+			return await _mediator.Send(new DeleteMinecraftServer(id));
 		}
 
-		[Authorize, HttpDelete]
-		public StatusCodeResult DeleteDSTServer(int id)
+		[HttpDelete]
+		public async Task<IActionResult> DeleteDSTServer(int id)
 		{
-			var user = GetUser(id);
-
-			System.IO.Directory.Delete(_config["DSTServerDirectory"] + user.Email, true);
-			System.IO.File.Delete(@$"{_dstDedicatedServerRoot}Don't Starve Together Dedicated Server\bin\Server_Caves{user.Email}.bat");
-			System.IO.File.Delete(@$"{_dstDedicatedServerRoot}Don't Starve Together Dedicated Server\bin\Server_Master{user.Email}.bat");
-			_db.Execute("update \"Site accounts\" set dst = false where id = @id", id);
-			dstServerProcesses.Remove(id);
-			return new StatusCodeResult((int)HttpStatusCode.OK);
+			return await _mediator.Send(new DeleteDSTServer(id));
 		}
 
 		private static Dictionary<int, Process> minecraftServerProcesses = new Dictionary<int, Process>();
 		private static Dictionary<int, List<Process>> dstServerProcesses = new Dictionary<int, List<Process>>();
 
-		class TextSource
+		[HttpGet]
+		public async Task<IActionResult> StartMinecraftServer(int id)
 		{
-			public Process process;
-			public int id;
-			public ConsoleType consoleType;
-
-			public TextSource(Process process, int id, ConsoleType consoleType)
-			{
-				this.process = process;
-				this.id = id;
-				this.consoleType = consoleType;
-			}
-		}
-		private void PrintConsole(object textSource)
-		{
-			if (textSource is TextSource source)
-			{
-				var cmd = source.process;
-				while (!cmd.HasExited)
-				{
-					var text = cmd.StandardOutput.ReadLine();
-					if (text != "")
-					{
-						Console.WriteLine(text);
-						_consoleHub.Clients.All.SendAsync("Send", text + "\n", source.id.ToString(), source.consoleType.ToString());
-					}
-				}
-			}
+			return await _mediator.Send(new StartMinecraftServer(id));
 		}
 
-		[Authorize, HttpGet]
-		public string[] StartMinecraftServer(int id)
-		{
-			var user = GetUser(id);
-			var serverDirectory = _serversRoot + user.Email;
-			Thread printingThread = new Thread(PrintConsole);
-			Process process = WPM.CreateCmdProcess("/C " + serverDirectory + "java @libraries/net/minecraftforge/forge/1.20.4-49.0.33/win_args.txt nogui %*");
-			process.Start();
-			minecraftServerProcesses[id] = process;
-			printingThread.Start(new TextSource(process, id, ConsoleType.Minecraft));
-			string directory = WPM.ExecuteCommand(serverDirectory + "dir /b");
-			string[] allFiles = directory.Split("\r\n");
-			LinkedList<string> formattedFoldersAndFiles = new();
-			foreach (var filename in allFiles)
-				if (!filename.Contains(".jar") && filename != "libraries")
-					formattedFoldersAndFiles.AddLast(filename);
-			string[] foldersAndFiles = new string[formattedFoldersAndFiles.Count];
-			int i = 0;
-			foreach (var filename in formattedFoldersAndFiles)
-				foldersAndFiles[i++] = filename;
-			return foldersAndFiles;
-		}
-
-		[Authorize, HttpGet]
+		[HttpGet]
 		public StatusCodeResult StartDSTServer(int id)
 		{
 			var user = GetUser(id);
 			var serverDirectory = $"{_dstDedicatedServerRoot}Don't Starve Together Dedicated Server\\bin\\";
 			Thread masterPrintingThread = new Thread(PrintConsole);
 			Thread cavesPrintingThread = new Thread(PrintConsole);
-			Process process1 = CreateCmdProcess($"{serverDirectory}Server_Master{user.Email}.bat");
-			Process process2 = CreateCmdProcess($"{serverDirectory}Server_Caves{user.Email}.bat");
+			Process process1 = WPM.CreateCmdProcess($"{serverDirectory}Server_Master{user.Email}.bat");
+			Process process2 = WPM.CreateCmdProcess($"{serverDirectory}Server_Caves{user.Email}.bat");
 			process1.Start();
 			process2.Start();
 			dstServerProcesses[id] = new List<Process>
@@ -201,7 +91,7 @@ namespace ServerPanel.Controllers
 			return new StatusCodeResult((int)HttpStatusCode.OK);
 		}
 
-		[Authorize, HttpPost]
+		[HttpPost]
 		public StatusCodeResult ExecuteMinecraftServerCommand(JObject obj)
 		{
 			int id = (int)obj.GetValue("id");
@@ -218,7 +108,7 @@ namespace ServerPanel.Controllers
 			return new StatusCodeResult((int)HttpStatusCode.OK);
 		}
 
-		[Authorize, HttpPost]
+		[HttpPost]
 		public StatusCodeResult ExecuteDSTServerCommand(int id, string command, bool isMaster)
 		{
 			Process proc;
@@ -235,7 +125,7 @@ namespace ServerPanel.Controllers
 			return new StatusCodeResult((int)HttpStatusCode.OK);
 		}
 
-		[Authorize, HttpGet]
+		[HttpGet]
 		public object ParseFile(int id, [Required] string name)
 		{
 			UserAccount user = GetUser(id);
@@ -258,7 +148,7 @@ namespace ServerPanel.Controllers
 			return "";
 		}
 
-		[Authorize, HttpPatch]
+		[HttpPatch]
 		public StatusCodeResult WriteFile(int id, [Required] string name, string fileContent)
 		{
 			UserAccount user = GetUser(id);

@@ -1,6 +1,6 @@
 ﻿using Panel.Infrastructure.Services;
 using MediatR;
-using Microsoft.Extensions.DependencyInjection;
+using Panel.Application.Interfaces.Services;
 
 namespace Panel.Infrastructure.Extensions
 {

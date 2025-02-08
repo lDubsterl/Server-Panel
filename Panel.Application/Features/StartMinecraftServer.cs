@@ -1,5 +1,6 @@
 ﻿using MediatR;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Panel.Application.Common;
 using Panel.Application.Interfaces.Services;
@@ -7,7 +8,6 @@ using Panel.Domain.Common;
 using Panel.Domain.Interfaces.Repositories;
 using Panel.Domain.Models;
 using System.Diagnostics;
-using System.Runtime.CompilerServices;
 
 namespace Panel.Application.Features
 {
@@ -32,16 +32,16 @@ namespace Panel.Application.Features
 
 		public async Task<IActionResult> Handle(StartMinecraftServer request, CancellationToken cancellationToken)
 		{
-			var user = await _unitOfWork.Repository<UserAccount>("Site accounts").GetByIdAsync(request.Id);
-			var serverRecord = await _unitOfWork.Repository<RunningServer>("Servers").GetByFieldAsync("Id", user.Id);
+			var user = await _unitOfWork.Repository<UserAccount>().GetByIdAsync(request.Id);
 
 			if (user is null || !user.MinecraftServer)
 				return new BadRequestObjectResult("There are no existing servers to run");
 
-			var serverDirectory = _config["ServersDirectory"] + user.Email;
-			Process process = _processManager.CreateCmdProcess("/C " + serverDirectory + "java @libraries/net/minecraftforge/forge/1.20.4-49.0.33/win_args.txt nogui %*");
+			var serverRecord = await _unitOfWork.Repository<RunningServer>().Entities.FirstOrDefaultAsync(e => e.UserId == request.Id);
+			var serverDirectory = _config["ServersDirectory"] + user.Email.Replace("@", "") + "/Minecraft/";
+			Process serverProcess = _processManager.CreateCmdProcess("/C " + $"java {serverDirectory}@libraries/net/minecraftforge/forge/1.20.4-49.0.33/win_args.txt nogui %*");
 
-			process.OutputDataReceived += async (sender, args) =>
+			serverProcess.OutputDataReceived += async (sender, args) =>
 			{
 				if (!string.IsNullOrEmpty(args.Data))
 				{
@@ -50,26 +50,34 @@ namespace Panel.Application.Features
 				}
 			};
 
-			process.ErrorDataReceived += async (sender, args) =>
+			var server = new RunningServer
+			{
+				UserId = user.Id,
+				ServerProcessId = serverProcess.Id,
+				ServerType = ConsoleTypes.MinecraftServer
+			};
+
+			serverProcess.ErrorDataReceived += async (sender, args) =>
 			{
 				if (!string.IsNullOrEmpty(args.Data))
 				{
 					Console.WriteLine(ConsoleTypes.MinecraftServer.ToString(), "ERROR: " + args.Data);
-					await _hub.Send(ConsoleTypes.MinecraftServer.ToString(), "ERROR: " + args.Data + "\n", request.Id);
 				}
 			};
-			process.Start();
-			process.BeginErrorReadLine();
-			process.BeginErrorReadLine();
+			serverProcess.Start();
+			serverProcess.BeginErrorReadLine();
+			serverProcess.BeginErrorReadLine();
 
-			var server = new RunningServer
+			await _unitOfWork.Repository<RunningServer>().AddAsync(server);
+			await _unitOfWork.Save();
+
+			_ = Task.Run(async () =>
 			{
-				UserId = user.Id,
-				ServerProcessId = process.Id,
-				ServerType = ConsoleTypes.MinecraftServer
-			};
+				await serverProcess.WaitForExitAsync();
+				await _unitOfWork.Repository<RunningServer>().DeleteAsync(server);
+				await _unitOfWork.Save();
+			});
 
-			await _unitOfWork.Repository<RunningServer>("Servers").AddAsync(server);
 			return new OkObjectResult("Server Starting...");
 		}
 	}

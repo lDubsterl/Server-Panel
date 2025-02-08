@@ -6,13 +6,7 @@ using Panel.Application.Interfaces.Services;
 using Panel.Domain.Common;
 using Panel.Domain.Interfaces.Repositories;
 using Panel.Domain.Models;
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Net;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Panel.Application.Features
 {
@@ -37,12 +31,14 @@ namespace Panel.Application.Features
 
 		public async Task<IActionResult> Handle(StartDSTServer request, CancellationToken cancellationToken)
 		{
-			var user = await _unitOfWork.Repository<UserAccount>("Site accounts").GetByIdAsync(request.Id);
+			var user = await _unitOfWork.Repository<UserAccount>().GetByIdAsync(request.Id);
 
 			var serverDirectory = $"{_configuration["DST_CLI_Directory"]}Don't Starve Together Dedicated Server\\bin\\";
+			if (user == null) return new BadRequestResult();
 
 			Process masterProcess = _processManager.CreateCmdProcess($"{serverDirectory}Server_Master{user.Email}.bat");
 			Process cavesProcess = _processManager.CreateCmdProcess($"{serverDirectory}Server_Caves{user.Email}.bat");
+
 
 			masterProcess.OutputDataReceived += async (sender, args) =>
 			{
@@ -53,12 +49,19 @@ namespace Panel.Application.Features
 				}
 			};
 
+			var masterServer = new RunningServer
+			{
+				UserId = user.Id,
+				ServerProcessId = masterProcess.Id,
+				ServerType = ConsoleTypes.DstMaster
+			};
+
 			masterProcess.ErrorDataReceived += async (sender, args) =>
 			{
 				if (!string.IsNullOrEmpty(args.Data))
 				{
 					Console.WriteLine(ConsoleTypes.DstMaster.ToString(), "ERROR: " + args.Data);
-					await _hub.Send(ConsoleTypes.DstMaster.ToString(), "ERROR: " + args.Data + "\n", request.Id);
+					//await _hub.Send(ConsoleTypes.DstMaster.ToString(), "ERROR: " + args.Data + "\n", request.Id);
 				}
 			};
 
@@ -71,12 +74,19 @@ namespace Panel.Application.Features
 				}
 			};
 
+			var cavesServer = new RunningServer
+			{
+				UserId = user.Id,
+				ServerProcessId = cavesProcess.Id,
+				ServerType = ConsoleTypes.DstCaves,
+			};
+
 			cavesProcess.ErrorDataReceived += async (sender, args) =>
 			{
 				if (!string.IsNullOrEmpty(args.Data))
 				{
 					Console.WriteLine(ConsoleTypes.DstCaves.ToString(), "ERROR: " + args.Data);
-					await _hub.Send(ConsoleTypes.DstCaves.ToString(), "ERROR: " + args.Data + "\n", request.Id);
+					//await _hub.Send(ConsoleTypes.DstCaves.ToString(), "ERROR: " + args.Data + "\n", request.Id);
 				}
 			};
 
@@ -87,21 +97,18 @@ namespace Panel.Application.Features
 			cavesProcess.BeginErrorReadLine();
 			cavesProcess.BeginOutputReadLine();
 
-			var server = new RunningServer
-			{
-				UserId = user.Id,
-				ServerProcessId = masterProcess.Id,
-				ServerType = ConsoleTypes.DstMaster
-			};
-			await _unitOfWork.Repository<RunningServer>("Servers").AddAsync(server);
+			await _unitOfWork.Repository<RunningServer>().AddAsync(masterServer);
+			await _unitOfWork.Repository<RunningServer>().AddAsync(cavesServer);
+			await _unitOfWork.Save();
 
-			server = new RunningServer
+			_ = Task.Run(async () =>
 			{
-				UserId = user.Id,
-				ServerProcessId = cavesProcess.Id,
-				ServerType = ConsoleTypes.DstCaves,
-			};
-			await _unitOfWork.Repository<RunningServer>("Servers").AddAsync(server);
+				await masterProcess.WaitForExitAsync();
+				await _unitOfWork.Repository<RunningServer>().DeleteAsync(masterServer);
+				await cavesProcess.WaitForExitAsync();
+				await _unitOfWork.Repository<RunningServer>().DeleteAsync(cavesServer);
+				await _unitOfWork.Save();
+			});
 
 			return new OkObjectResult("Server starting...");
 		}

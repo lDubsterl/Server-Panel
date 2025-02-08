@@ -5,6 +5,7 @@ using Panel.Application.Common;
 using Panel.Application.Interfaces.Services;
 using Panel.Domain.Interfaces.Repositories;
 using Panel.Domain.Models;
+using System.Diagnostics;
 
 namespace Panel.Application.Features
 {
@@ -16,36 +17,39 @@ namespace Panel.Application.Features
 	{
 		private IUnitOfWork _unitOfWork;
 		private IConfiguration _config;
-		private IProcessManager _manager;
-		public CreateMinecraftServerHandler(IUnitOfWork unitOfWork, IConfiguration config, IProcessManager manager)
+		private IProcessManager _processManager;
+		public CreateMinecraftServerHandler(IUnitOfWork unitOfWork, IConfiguration config, IProcessManager processManager)
 		{
 			_unitOfWork = unitOfWork;
 			_config = config;
-			_manager = manager;
+			_processManager = processManager;
 		}
 		public async Task<IActionResult> Handle(CreateMinecraftServer request, CancellationToken cancellationToken)
 		{
 			var _serversRoot = _config["ServersDirectory"];
-			var repository = _unitOfWork.Repository<UserAccount>("Site accounts");
+			var repository = _unitOfWork.Repository<UserAccount>();
 
 			var client = await repository.GetByIdAsync(request.Id);
-			client.MinecraftServer = true;
+
+			if (client == null)
+				return new NotFoundObjectResult("There is no user with such id");
 
 			if (client.MinecraftServer)
 				return new ConflictObjectResult("Server is already created");
 
-			var serverDirectory = _serversRoot + client.Email;
+			client.MinecraftServer = true;
+			var serverDirectory = _serversRoot + client.Email.Replace("@", "") + "/Minecraft/";
 
-			_manager.ExecuteCommand($"cd /d {_serversRoot} && mkdir {client.Email}");
+			if (!Directory.Exists(serverDirectory))
+				Directory.CreateDirectory(serverDirectory);
 
 			var task = repository.UpdateAsync(client);
-			_manager.ExecuteCommand(serverDirectory + "java -jar ../forge-1.20.4-49.0.33-installer.jar --installServer");
-			_manager.ExecuteCommand(serverDirectory + "java @libraries/net/minecraftforge/forge/1.20.4-49.0.33/win_args.txt %*");
+			await _processManager.ExecuteCommandAsync($"java -jar {serverDirectory}../forge-1.20.4-49.0.33-installer.jar --installServer");
+			await _processManager.ExecuteCommandAsync("java @libraries/net/minecraftforge/forge/1.20.4-49.0.33/win_args.txt %*");
 
-			var eula = _manager.ExecuteCommand(serverDirectory + "type eula.txt");
+			var eula = File.ReadAllText(serverDirectory + "eula.txt");
 			eula = eula.Replace("false", "true");
-			var strings = eula.Split("\r\n");
-			_manager.ExecuteCommand(serverDirectory + $"echo {strings[2]}> eula.txt");
+			File.WriteAllText(serverDirectory + "eula.txt", eula);
 
 			await task;
 			return new OkObjectResult("Created succesfully");

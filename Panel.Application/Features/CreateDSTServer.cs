@@ -19,9 +19,9 @@ namespace Panel.Application.Features
 	{
 		IConfiguration _config;
 		IUnitOfWork _unitOfWork;
-		IProcessManager _processManager;
+		IFtpManager _processManager;
 
-		public CreateDSTServerHandler(IConfiguration config, IUnitOfWork unitOfWork, IProcessManager processManager)
+		public CreateDSTServerHandler(IConfiguration config, IUnitOfWork unitOfWork, IFtpManager processManager)
 		{
 			_config = config;
 			_unitOfWork = unitOfWork;
@@ -30,9 +30,11 @@ namespace Panel.Application.Features
 
 		public async Task<IActionResult> Handle(CreateDSTServer request, CancellationToken cancellationToken)
 		{
-			var repository = _unitOfWork.Repository<UserAccount>("Site accounts");
-			UserAccount accUser = await repository.GetByIdAsync(request.Id);
+			var repository = _unitOfWork.Repository<UserAccount>();
+			UserAccount? accUser = await repository.GetByIdAsync(request.Id);
 
+			if (accUser == null)
+				return new NotFoundObjectResult("There is no user with such id");
 			if (accUser.DSTServer)
 				return new ConflictObjectResult("Server is already created");
 

@@ -1,25 +1,22 @@
-﻿using Panel.Application.AuthenticationRequests;
-using Panel.Application.DTOs;
-using Panel.Application.Interfaces.Services;
-using Panel.Domain.Entities;
-using Panel.Persistence.Contexts;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Panel.Application.AuthenticationRequests;
+using Panel.Application.Interfaces.Services;
 
 namespace Panel.Infrastructure.Services
 {
-    public class TokenService : ITokenService
+	public class TokenService : ITokenService
 	{
-		readonly LibraryDbContext _db;
+		readonly PanelDbContext _db;
 
-		public TokenService(LibraryDbContext db)
+		public TokenService(PanelDbContext db)
 		{
 			_db = db;
 		}
 
 		public async Task<string> GenerateAccessTokenAsync(int userId)
 		{
-			var userRecord = await _db.Users.Include(t => t.RefreshTokens).SingleAsync(u => u.Id == userId);
+			var userRecord = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId);
 			
 			if (userRecord == null)
 				return "";

@@ -2,6 +2,7 @@
 {
 	public interface IUnitOfWork
 	{
-		public IRepository<T> Repository<T>(string tableName) where T : class;
+		public IRepository<T> Repository<T>() where T : class;
+		public Task<int> Save();
 	}
 }

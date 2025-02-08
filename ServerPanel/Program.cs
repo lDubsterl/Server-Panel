@@ -82,8 +82,6 @@ namespace ServerPanel
 			});
 			var app = builder.Build();
 
-			RefreshToken.Create(app.Configuration, app.Services.GetService(typeof(IDbConfiguration<>)))
-
 			if (app.Environment.IsDevelopment())
 			{
 				app.UseDeveloperExceptionPage();

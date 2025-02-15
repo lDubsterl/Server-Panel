@@ -6,6 +6,7 @@ using Panel.Application.Common;
 using Panel.Domain.Common;
 using Panel.Domain.Interfaces.Repositories;
 using Panel.Domain.Models;
+using Panel.Shared;
 
 namespace Panel.Application.Features
 {
@@ -31,7 +32,7 @@ namespace Panel.Application.Features
 			var user = await repository.GetByIdAsync(request.Id);
 			var dstDedicatedServerRoot = _config["DST_CLI_Directory"];
 
-			if (user == null) return new BadRequestResult();
+			if (user == null) return new BadRequestObjectResult(new BaseResponse(false, "User not found"));
 
 			Directory.Delete(_config["ServersDirectory"] + user.Email.Replace("@", "") + "/Minecraft/", true);
 
@@ -46,7 +47,7 @@ namespace Panel.Application.Features
 				.ForEachAsync(async el => await processesRepository.DeleteAsync(el));
 			await _unitOfWork.Save();
 
-			return new OkResult();
+			return new OkObjectResult(new BaseResponse("Server deleted successfully"));
 
 			//dstServerProcesses.Remove(id);
 		}

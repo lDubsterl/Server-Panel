@@ -4,6 +4,7 @@ using Microsoft.Extensions.Configuration;
 using Panel.Application.Interfaces.Services;
 using Panel.Domain.Interfaces.Repositories;
 using Panel.Domain.Models;
+using Panel.Shared;
 
 namespace Panel.Application.Features
 {
@@ -34,9 +35,9 @@ namespace Panel.Application.Features
 			UserAccount? accUser = await repository.GetByIdAsync(request.Id);
 
 			if (accUser == null)
-				return new NotFoundObjectResult("There is no user with such id");
+				return new NotFoundObjectResult(new BaseResponse(false, "There is no user with such id"));
 			if (accUser.DSTServer)
-				return new ConflictObjectResult("Server is already created");
+				return new ConflictObjectResult(new BaseResponse(false, "Server is already created"));
 
 			var serversRoot = _config["ServersDirectory"];
 			var serverDirectory = _config["DSTServerDirectory"];
@@ -72,7 +73,7 @@ namespace Panel.Application.Features
 			File.WriteAllText($"{dstDedicatedServerRoot}Don't Starve Together Dedicated Server\\bin\\Server_Caves{accUser.Email}.bat", server);
 
 			await task;
-			return new OkObjectResult("Created succesfully");
+			return new OkObjectResult(new BaseResponse("Created succesfully"));
 		}
 	}
 }

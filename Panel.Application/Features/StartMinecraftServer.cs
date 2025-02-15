@@ -7,6 +7,7 @@ using Panel.Application.Interfaces.Services;
 using Panel.Domain.Common;
 using Panel.Domain.Interfaces.Repositories;
 using Panel.Domain.Models;
+using Panel.Shared;
 using System.Diagnostics;
 
 namespace Panel.Application.Features
@@ -35,7 +36,7 @@ namespace Panel.Application.Features
 			var user = await _unitOfWork.Repository<UserAccount>().GetByIdAsync(request.Id);
 
 			if (user is null || !user.MinecraftServer)
-				return new BadRequestObjectResult("There are no existing servers to run");
+				return new BadRequestObjectResult(new BaseResponse(false, "There are no existing servers to run"));
 
 			var serverRecord = await _unitOfWork.Repository<RunningServer>().Entities.FirstOrDefaultAsync(e => e.UserId == request.Id);
 			var serverDirectory = _config["ServersDirectory"] + user.Email.Replace("@", "") + "/Minecraft/";
@@ -78,7 +79,7 @@ namespace Panel.Application.Features
 				await _unitOfWork.Save();
 			});
 
-			return new OkObjectResult("Server Starting...");
+			return new OkObjectResult(new BaseResponse("Server starting..."));
 		}
 	}
 }

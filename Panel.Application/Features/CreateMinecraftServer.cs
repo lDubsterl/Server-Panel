@@ -5,6 +5,7 @@ using Panel.Application.Common;
 using Panel.Application.Interfaces.Services;
 using Panel.Domain.Interfaces.Repositories;
 using Panel.Domain.Models;
+using Panel.Shared;
 using System.Diagnostics;
 
 namespace Panel.Application.Features
@@ -32,10 +33,10 @@ namespace Panel.Application.Features
 			var client = await repository.GetByIdAsync(request.Id);
 
 			if (client == null)
-				return new NotFoundObjectResult("There is no user with such id");
+				return new NotFoundObjectResult(new BaseResponse(false, "There is no user with such id"));
 
 			if (client.MinecraftServer)
-				return new ConflictObjectResult("Server is already created");
+				return new ConflictObjectResult(new BaseResponse(false, "Server is already created"));
 
 			client.MinecraftServer = true;
 			var serverDirectory = _serversRoot + client.Email.Replace("@", "") + "/Minecraft/";
@@ -52,7 +53,7 @@ namespace Panel.Application.Features
 			File.WriteAllText(serverDirectory + "eula.txt", eula);
 
 			await task;
-			return new OkObjectResult("Created succesfully");
+			return new OkObjectResult(new BaseResponse("Created succesfully"));
 		}
 	}
 }

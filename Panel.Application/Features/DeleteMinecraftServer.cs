@@ -6,6 +6,7 @@ using Panel.Application.Common;
 using Panel.Domain.Common;
 using Panel.Domain.Interfaces.Repositories;
 using Panel.Domain.Models;
+using Panel.Shared;
 
 namespace Panel.Application.Features
 {
@@ -30,7 +31,7 @@ namespace Panel.Application.Features
 			var userRepository = _unitOfWork.Repository<UserAccount>();
 			var user = await userRepository.GetByIdAsync(request.Id);
 
-			if (user == null) return new BadRequestResult();
+			if (user == null) return new BadRequestObjectResult(new BaseResponse(false, "User not found"));
 
 			Directory.Delete(_config["ServersDirectory"] + user.Email.Replace("@", "") + "/Minecraft/", true);
 
@@ -42,7 +43,7 @@ namespace Panel.Application.Features
 			await processesRepository.DeleteAsync(server);
 			await _unitOfWork.Save();
 
-			return new OkResult();
+			return new OkObjectResult(new BaseResponse("Server deleted successfully"));
 		}
 	}
 }

@@ -6,6 +6,7 @@ using Panel.Application.Interfaces.Services;
 using Panel.Domain.Common;
 using Panel.Domain.Interfaces.Repositories;
 using Panel.Domain.Models;
+using Panel.Shared;
 using System.Diagnostics;
 
 namespace Panel.Application.Features
@@ -34,7 +35,7 @@ namespace Panel.Application.Features
 			var user = await _unitOfWork.Repository<UserAccount>().GetByIdAsync(request.Id);
 
 			var serverDirectory = $"{_configuration["DST_CLI_Directory"]}Don't Starve Together Dedicated Server\\bin\\";
-			if (user == null) return new BadRequestResult();
+			if (user == null) return new BadRequestObjectResult(new BaseResponse(false, "User not found"));
 
 			Process masterProcess = _processManager.CreateCmdProcess($"{serverDirectory}Server_Master{user.Email}.bat");
 			Process cavesProcess = _processManager.CreateCmdProcess($"{serverDirectory}Server_Caves{user.Email}.bat");
@@ -110,7 +111,7 @@ namespace Panel.Application.Features
 				await _unitOfWork.Save();
 			});
 
-			return new OkObjectResult("Server starting...");
+			return new OkObjectResult(new BaseResponse("Server starting..."));
 		}
 	}
 }

@@ -1,4 +1,6 @@
-﻿namespace Panel.Domain.Models
+﻿using Panel.Domain.Models;
+
+namespace Panel.Domain.Models
 {
 	public class UserAccount
 	{
@@ -10,6 +12,8 @@
 		public string Role { get; set; } = "User";
 		public bool MinecraftServer { get; set; } = false;
 		public bool DSTServer { get; set; } = false;
+		public DateTime Ts { get; set; }
+		public List<RefreshToken> RefreshTokens { get; set; }
 
 	}
 }

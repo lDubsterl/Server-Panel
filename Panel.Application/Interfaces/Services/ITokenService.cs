@@ -1,6 +1,7 @@
 ﻿using Panel.Application.AuthenticationRequests;
 using Microsoft.AspNetCore.Mvc;
 using Panel.Domain.Models;
+using Panel.Application.DTOs;
 
 namespace Panel.Application.Interfaces.Services
 {

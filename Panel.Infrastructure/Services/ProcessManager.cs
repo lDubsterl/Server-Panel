@@ -8,8 +8,8 @@ namespace Panel.Infrastructure.Services
 {
     public class ProcessManager: IProcessManager
     {
-        private static string _shellName = "/bin/ash";
-        private static string _baseArguments { get; } = Environment.OSVersion.Platform == PlatformID.Win32NT ? "/C " : "-c ";
+        private static string _shellName = "/bin/bash";
+        private static string _baseArguments = "-c ";
 		public string ExecuteCommand(string command)
 		{
 			string result;

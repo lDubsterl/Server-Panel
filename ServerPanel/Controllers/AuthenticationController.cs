@@ -1,5 +1,7 @@
-﻿using MediatR;
+﻿using Library.Application.Features.Authentication;
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
+using Panel.Application.AuthenticationRequests;
 using System.Threading.Tasks;
 
 namespace ServerPanel.Controllers
@@ -15,31 +17,31 @@ namespace ServerPanel.Controllers
 			_mediator = mediator;
 		}
 
-		[HttpPost]
+		[HttpPost("Login")]
 		public async Task<IActionResult> LogIn(Login request)
 		{
 			return await _mediator.Send(request);
 		}
 
-		[HttpPost]
+		[HttpPost("SignUp")]
 		public async Task<IActionResult> SignUp(SignUp request)
 		{
 			return await _mediator.Send(request);
 		}
 
-		[HttpPost]
+		[HttpPost("Reauthorize")]
 		public async Task<IActionResult> GetNewAccessToken(GetAccessToken request)
 		{
 			return await _mediator.Send(request);
 		}
 
-		[HttpPost]
+		[HttpPost("Logout")]
 		public async Task<IActionResult> LogOut()
 		{
 			return await _mediator.Send(new LogOutRequest(UserId));
 		}
 
-		[HttpGet]
+		[HttpGet("Verify")]
 		public IActionResult Verify()
 		{
 			if (HttpContext.User.Identity.IsAuthenticated)

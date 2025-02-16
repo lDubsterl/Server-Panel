@@ -1,7 +1,9 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Panel.Application.AuthenticationRequests;
+using Panel.Application.DTOs;
 using Panel.Application.Interfaces.Services;
+using Panel.Domain.Models;
 
 namespace Panel.Infrastructure.Services
 {
@@ -47,7 +49,7 @@ namespace Panel.Infrastructure.Services
 			userRecord.RefreshTokens?.Add(new RefreshToken
 			{
 				ExpiryDate = DateTime.UtcNow.AddDays(30),
-				Ts = DateTime.UtcNow,
+				IssueDate = DateTime.UtcNow,
 				UserId = userId,
 				TokenHash = refreshTokenHashed,
 				TokenSalt = Convert.ToBase64String(salt)
@@ -61,7 +63,7 @@ namespace Panel.Infrastructure.Services
 			return token;
 		}
 
-		public async Task<bool> RemoveRefreshTokenAsync(User user)
+		public async Task<bool> RemoveRefreshTokenAsync(UserAccount user)
 		{
 			var userRecord = await _db.Users.Include(o => o.RefreshTokens).FirstOrDefaultAsync(e => e.Id == user.Id);
 
@@ -74,7 +76,7 @@ namespace Panel.Infrastructure.Services
 			{
 				var currentRefreshToken = userRecord.RefreshTokens.First();
 
-				_db.RefreshTokens.Remove(currentRefreshToken);
+				_db.Tokens.Remove(currentRefreshToken);
 			}
 
 			return false;
@@ -82,7 +84,7 @@ namespace Panel.Infrastructure.Services
 
 		public async Task<object> ValidateRefreshTokenAsync(TokenDTO refreshTokenRequest)
 		{
-			var refreshToken = await _db.RefreshTokens.FirstOrDefaultAsync(o => o.UserId == refreshTokenRequest.UserId);
+			var refreshToken = await _db.Tokens.FirstOrDefaultAsync(o => o.UserId == refreshTokenRequest.UserId);
 
 			if (refreshToken == null)
 				return new BadRequestObjectResult(new { Message = "Invalid session or user is already logged out" });

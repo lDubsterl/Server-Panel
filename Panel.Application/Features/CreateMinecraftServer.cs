@@ -45,7 +45,7 @@ namespace Panel.Application.Features
 				Directory.CreateDirectory(serverDirectory);
 
 			var task = repository.UpdateAsync(client);
-			await _processManager.ExecuteCommandAsync($"java -jar {serverDirectory}../forge-1.20.4-49.0.33-installer.jar --installServer");
+			await _processManager.ExecuteCommandAsync($"java -jar {serverDirectory}../minecraft_server.1.19.2.jar --installServer");
 			await _processManager.ExecuteCommandAsync("java @libraries/net/minecraftforge/forge/1.20.4-49.0.33/win_args.txt %*");
 
 			var eula = File.ReadAllText(serverDirectory + "eula.txt");

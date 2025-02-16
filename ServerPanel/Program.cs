@@ -1,15 +1,15 @@
-using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.IdentityModel.Tokens;
-using TokenApp;
-using Microsoft.OpenApi.Models;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Panel.Infrastructure.DbConfigurations;
-using Panel.Domain.Models;
-using Panel.Domain.DbConfigurations;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
+using Panel.Application.AuthenticationRequests;
+using Panel.Infrastructure.Extensions;
 using Panel.Infrastructure.Hubs;
+using System.Reflection;
+using TokenApp;
 
 namespace ServerPanel
 {
@@ -18,7 +18,11 @@ namespace ServerPanel
 		public static void Main(string[] args)
 		{
 			var builder = WebApplication.CreateBuilder(args);
+
 			var services = builder.Services;
+
+			services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(Assembly.GetAssembly(typeof(Login))));
+			services.AddInfrastructureLayer(builder.Configuration);
 
 			services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 					.AddJwtBearer(options =>
@@ -44,10 +48,6 @@ namespace ServerPanel
 							ValidateIssuerSigningKey = true,
 						};
 					});
-			services.AddAuthorization();
-			services.AddControllers().AddNewtonsoftJson();
-			services.AddScoped(typeof(IDbConfiguration<>), typeof(PostgresConfiguration));
-			services.AddSignalR();
 			services.AddCors(options =>
 			{
 				options.AddPolicy("CORSPolicy", builder =>
@@ -80,6 +80,10 @@ namespace ServerPanel
 					}
 				});
 			});
+
+			services.AddAuthorization();
+			services.AddControllers().AddNewtonsoftJson();
+			services.AddSignalR();
 			var app = builder.Build();
 
 			if (app.Environment.IsDevelopment())

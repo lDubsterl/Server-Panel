@@ -1,6 +1,7 @@
 ﻿using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
+using Panel.Application.DTOs;
 using Panel.Application.Interfaces.Services;
 using Panel.Domain.Interfaces.Repositories;
 using Panel.Domain.Models;
@@ -8,15 +9,8 @@ using Panel.Shared;
 
 namespace Panel.Application.Features
 {
-	public class CreateDSTServer : IRequest<IActionResult>
-	{
-		public int Id { get; set; }
-		public required string ServerName { get; set; }
-		public string ServerDescription { get; set; } = "";
-		public string ServerPassword { get; set; } = "";
-	}
 
-	public class CreateDSTServerHandler : IRequestHandler<CreateDSTServer, IActionResult>
+	public class CreateDSTServerHandler : IRequestHandler<CreateDSTServerRequest, IActionResult>
 	{
 		IConfiguration _config;
 		IUnitOfWork _unitOfWork;
@@ -29,10 +23,10 @@ namespace Panel.Application.Features
 			_processManager = processManager;
 		}
 
-		public async Task<IActionResult> Handle(CreateDSTServer request, CancellationToken cancellationToken)
+		public async Task<IActionResult> Handle(CreateDSTServerRequest request, CancellationToken cancellationToken)
 		{
-			var repository = _unitOfWork.Repository<UserAccount>();
-			UserAccount? accUser = await repository.GetByIdAsync(request.Id);
+			var repository = _unitOfWork.Repository<User>();
+			User? accUser = await repository.GetByIdAsync(request.Id);
 
 			if (accUser == null)
 				return new NotFoundObjectResult(new BaseResponse(false, "There is no user with such id"));

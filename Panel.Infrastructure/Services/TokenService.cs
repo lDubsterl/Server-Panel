@@ -1,13 +1,12 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Panel.Application.AuthenticationRequests;
-using Panel.Application.DTOs;
+using Panel.Application.DTOs.AuthenticationRequests;
 using Panel.Application.Interfaces.Services;
 using Panel.Domain.Models;
 
 namespace Panel.Infrastructure.Services
 {
-	public class TokenService : ITokenService
+    public class TokenService : ITokenService
 	{
 		readonly PanelDbContext _db;
 
@@ -63,7 +62,7 @@ namespace Panel.Infrastructure.Services
 			return token;
 		}
 
-		public async Task<bool> RemoveRefreshTokenAsync(UserAccount user)
+		public async Task<bool> RemoveRefreshTokenAsync(User user)
 		{
 			var userRecord = await _db.Users.Include(o => o.RefreshTokens).FirstOrDefaultAsync(e => e.Id == user.Id);
 
@@ -82,14 +81,14 @@ namespace Panel.Infrastructure.Services
 			return false;
 		}
 
-		public async Task<object> ValidateRefreshTokenAsync(TokenDTO refreshTokenRequest)
+		public async Task<object> ValidateRefreshTokenAsync(Token refreshTokenRequest)
 		{
 			var refreshToken = await _db.Tokens.FirstOrDefaultAsync(o => o.UserId == refreshTokenRequest.UserId);
 
 			if (refreshToken == null)
 				return new BadRequestObjectResult(new { Message = "Invalid session or user is already logged out" });
 
-			var refreshTokenToValidateHash = PasswordBuilder.HashUsingPbkdf2(refreshTokenRequest.Token, Convert.FromBase64String(refreshToken.TokenSalt));
+			var refreshTokenToValidateHash = PasswordBuilder.HashUsingPbkdf2(refreshTokenRequest.JwtToken, Convert.FromBase64String(refreshToken.TokenSalt));
 
 			if (refreshToken.TokenHash != refreshTokenToValidateHash)
 				return new BadRequestObjectResult(new { Message = "Invalid refresh token" });

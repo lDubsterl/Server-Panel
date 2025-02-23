@@ -1,12 +1,12 @@
 ﻿using Library.Application.Features.Authentication;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
-using Panel.Application.AuthenticationRequests;
+using Panel.Application.DTOs.AuthenticationRequests;
 using System.Threading.Tasks;
 
 namespace ServerPanel.Controllers
 {
-	[Route("api/[controller]")]
+    [Route("api/[controller]")]
 	[ApiController]
 	public class AuthenticationController : BaseController
 	{

@@ -6,9 +6,10 @@ using System.Threading.Tasks;
 
 namespace Panel.Domain.Common
 {
-	public enum ConsoleTypes
+	public enum ServerTypes
 	{
-		MinecraftServer,
+		Minecraft,
+		MinecraftModded,
 		DstMaster,
 		DstCaves
 	}

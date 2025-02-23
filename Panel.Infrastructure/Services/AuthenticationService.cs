@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Panel.Application.AuthenticationRequests;
+using Panel.Application.DTOs.AuthenticationRequests;
 using Panel.Application.Interfaces.Services;
 using Panel.Domain.Interfaces.Repositories;
 using Panel.Domain.Models;
@@ -23,7 +23,7 @@ namespace Panel.Infrastructure.Services
 
 		public async Task<IActionResult> LoginAsync(Login loginRequest)
 		{
-			var user = await _unitOfWork.Repository<UserAccount>().Entities.FirstOrDefaultAsync(e => e.Email == loginRequest.Email);
+			var user = await _unitOfWork.Repository<User>().Entities.FirstOrDefaultAsync(e => e.Email == loginRequest.Email);
 			if (user == null)
 			{
 				return new BadRequestObjectResult(new { Message = "Email not found" });
@@ -64,7 +64,7 @@ namespace Panel.Infrastructure.Services
 
 		public async Task<IActionResult> SignUpAsync(SignUp signupRequest)
 		{
-			var repository = _unitOfWork.Repository<UserAccount>();
+			var repository = _unitOfWork.Repository<User>();
 			var existingUser = await repository.Entities.FirstOrDefaultAsync(e => e.Email == signupRequest.Email);
 
 			if (existingUser != null)
@@ -85,13 +85,14 @@ namespace Panel.Infrastructure.Services
 			var salt = PasswordBuilder.GetSecureSalt();
 			var passwordHash = PasswordBuilder.HashUsingPbkdf2(signupRequest.Password, salt);
 
-			var user = new UserAccount
+			var user = new User
 			{
 				Email = signupRequest.Email,
 				Password = passwordHash,
 				PasswordSalt = Convert.ToBase64String(salt),
 				FtpPassword = _manager.ManageFTPUser(signupRequest.Email.Replace("@", ""), ManageMode.Create),
 				Role = signupRequest.Role,
+				Ts = DateTime.UtcNow
 			};
 
 			await repository.AddAsync(user);

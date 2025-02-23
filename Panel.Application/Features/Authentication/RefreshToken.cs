@@ -1,11 +1,11 @@
 ﻿using MediatR;
 using Microsoft.AspNetCore.Mvc;
-using Panel.Application.DTOs;
+using Panel.Application.DTOs.AuthenticationRequests;
 using Panel.Application.Interfaces.Services;
 
 namespace Library.Application.Features.Authentication
 {
-	public class RefreshToken : TokenDTO, IRequest<IActionResult> { }
+    public class RefreshToken : Token, IRequest<IActionResult> { }
 	public class RefreshTokenHandler : IRequestHandler<RefreshToken, IActionResult>
 	{
 		ITokenService _service;
@@ -17,7 +17,7 @@ namespace Library.Application.Features.Authentication
 
 		public async Task<IActionResult> Handle(RefreshToken request, CancellationToken cancellationToken)
 		{
-			if (request == null || string.IsNullOrEmpty(request.Token) || request.UserId == 0)
+			if (request == null || string.IsNullOrEmpty(request.JwtToken) || request.UserId == 0)
 				return new BadRequestObjectResult(new { Message = "Missing refresh token details" });
 
 			var validateRefreshTokenResponse = await _service.ValidateRefreshTokenAsync(request);

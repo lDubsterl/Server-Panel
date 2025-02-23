@@ -1,8 +1,5 @@
-﻿using Microsoft.Web.Administration;
-using Panel.Application.Common;
-using Panel.Application.Interfaces.Services;
+﻿using Panel.Application.Interfaces.Services;
 using Panel.Shared;
-using System.Diagnostics;
 using System.Security.Cryptography;
 
 namespace Panel.Infrastructure.Services

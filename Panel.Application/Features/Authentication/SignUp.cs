@@ -1,11 +1,11 @@
 ﻿using MediatR;
 using Microsoft.AspNetCore.Mvc;
-using Panel.Application.AuthenticationRequests;
+using Panel.Application.DTOs.AuthenticationRequests;
 using Panel.Application.Interfaces.Services;
 
 namespace Library.Application.Features.Authentication
 {
-	public class SignUpHandler: IRequestHandler<SignUp, IActionResult>
+    public class SignUpHandler: IRequestHandler<SignUp, IActionResult>
 	{
 		IAuthenticationService _service;
 

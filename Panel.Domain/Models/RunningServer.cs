@@ -11,7 +11,8 @@ namespace Panel.Domain.Models
 	{
 		public int Id { get; set; }
 		public int UserId { get; set; }
-		public int ServerProcessId { get; set; } = -1;
-		public ConsoleTypes ServerType { get; set; }
+		public string ContainerName { get; set; }
+		public int Port { get; set; }
+		public ServerTypes ServerType { get; set; }
 	}
 }

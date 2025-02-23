@@ -1,7 +1,7 @@
 ﻿using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
-using Panel.Application.DTOs;
+using Panel.Application.DTOs.ServerRequests;
 using Panel.Application.Interfaces.Services;
 using Panel.Domain.Interfaces.Repositories;
 using Panel.Domain.Models;
@@ -10,7 +10,7 @@ using Panel.Shared;
 namespace Panel.Application.Features
 {
 
-	public class CreateDSTServerHandler : IRequestHandler<CreateDSTServerRequest, IActionResult>
+    public class CreateDSTServerHandler : IRequestHandler<CreateDSTServerRequest, IActionResult>
 	{
 		IConfiguration _config;
 		IUnitOfWork _unitOfWork;

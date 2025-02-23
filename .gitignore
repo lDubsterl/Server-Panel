@@ -364,3 +364,4 @@ FodyWeavers.xsd
 
 #binaries
 /ServerPanel/bin/
+/команда для запуска основного контейнера.fake

@@ -20,25 +20,22 @@ namespace ServerPanel.Controllers
 
 	[Route("api/[controller]/{id}/[action]")]
 	[ApiController, Authorize]
-	public class ServerSelectionController : Controller
+	public class ServerSelectionController : BaseController
 	{
 		private readonly IConsoleHub _consoleHub;
 		private readonly IConfiguration _config;
-
 		private readonly IMediator _mediator;
 		public ServerSelectionController(IConfiguration config, IConsoleHub consoleHub, IMediator mediator)
 		{
-			//_dstDedicatedServerRoot = config["DST_CLI_Directory"];
-			//_serversRoot = config["ServersDirectory"];
 			_config = config;
 			_consoleHub = consoleHub;
 			_mediator = mediator;
 		}
 
 		[HttpPut]
-		public async Task<IActionResult> CreateMinecraftServer(int id)
+		public async Task<IActionResult> CreateMinecraftServer(string serverVersion)
 		{
-			return await _mediator.Send(new CreateMinecraftServer(id));
+			return await _mediator.Send(new CreateMinecraftServer(serverVersion, UserId));
 		}
 
 		[HttpPut]
@@ -48,27 +45,27 @@ namespace ServerPanel.Controllers
 		}
 
 		[HttpDelete]
-		public async Task<IActionResult> DeleteMinecraftServer(int id)
+		public async Task<IActionResult> DeleteMinecraftServer()
 		{
-			return await _mediator.Send(new DeleteMinecraftServer(id));
+			return await _mediator.Send(new DeleteMinecraftServer(UserId));
 		}
 
 		[HttpDelete]
-		public async Task<IActionResult> DeleteDSTServer(int id)
+		public async Task<IActionResult> DeleteDSTServer()
 		{
-			return await _mediator.Send(new DeleteDSTServer(id));
+			return await _mediator.Send(new DeleteDSTServer(UserId));
 		}
 
 		[HttpGet]
-		public async Task<IActionResult> StartMinecraftServer(int id)
+		public async Task<IActionResult> StartMinecraftServer()
 		{
-			return await _mediator.Send(new StartMinecraftServer(id));
+			return await _mediator.Send(new StartMinecraftServer(UserId));
 		}
 
 		[HttpGet]
-		public async Task<IActionResult> StartDSTServer(int id)
+		public async Task<IActionResult> StartDSTServer()
 		{
-			return await _mediator.Send(new StartDSTServer(id));
+			return await _mediator.Send(new StartDSTServer(UserId));
 		}
 
 		//[HttpPost]

@@ -9,8 +9,8 @@ namespace Panel.Application.Interfaces.Services
 {
 	public interface IProcessManager
 	{
-		public Process CreateCmdProcess(string cmdArguments);
-		public Task<string> ExecuteCommandAsync(string command);
-		public string ExecuteCommand(string command);
+		public Process CreateCmdProcess(string cmdArguments, string workingDirectory = "");
+		public Task<string> ExecuteCommandAsync(string command, string workingDirectory = "");
+		public string ExecuteCommand(string command, string workingDirectory = "");
 	}
 }

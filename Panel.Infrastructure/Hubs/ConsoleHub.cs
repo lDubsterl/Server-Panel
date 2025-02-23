@@ -8,7 +8,8 @@ namespace Panel.Infrastructure.Hubs
 	{
 		public async Task Send(string consoleType, string message, int id)
 		{
-			await Clients.Client(id.ToString()).SendCoreAsync(consoleType, [message, consoleType]);
+			if (Clients is not null)
+				await Clients.Client(id.ToString()).SendCoreAsync(consoleType, [message, consoleType]);
 		}
 	}
 }

@@ -10,7 +10,7 @@ namespace Panel.Infrastructure
 {
 	public class PanelDbContext: DbContext
 	{
-		public DbSet<UserAccount> Users => Set<UserAccount>();
+		public DbSet<User> Users => Set<User>();
 		public DbSet<RefreshToken> Tokens => Set<RefreshToken>();
 		public DbSet<RunningServer> RunningServers => Set<RunningServer>();
 		public PanelDbContext(DbContextOptions<PanelDbContext> options) : base(options)

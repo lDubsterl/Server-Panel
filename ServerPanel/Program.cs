@@ -5,7 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-using Panel.Application.AuthenticationRequests;
+using Panel.Application.DTOs.AuthenticationRequests;
 using Panel.Infrastructure.Extensions;
 using Panel.Infrastructure.Hubs;
 using System.Reflection;
@@ -13,7 +13,7 @@ using TokenApp;
 
 namespace ServerPanel
 {
-	public class Program
+    public class Program
 	{
 		public static void Main(string[] args)
 		{

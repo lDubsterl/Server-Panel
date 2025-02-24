@@ -2,17 +2,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
-using Newtonsoft.Json.Linq;
+using Panel.Application.DTOs.ServerRequests;
 using Panel.Application.Features;
 using Panel.Application.Interfaces.Services;
-using Panel.Infrastructure.Hubs;
-using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.Diagnostics;
-using System.Linq;
-using System.Net;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace ServerPanel.Controllers
@@ -35,7 +27,7 @@ namespace ServerPanel.Controllers
 		[HttpPut]
 		public async Task<IActionResult> CreateMinecraftServer(string serverVersion)
 		{
-			return await _mediator.Send(new CreateMinecraftServer(serverVersion, UserId));
+			return await _mediator.Send(new CreateMinecraftServerRequest(serverVersion, UserId));
 		}
 
 		[HttpPut]

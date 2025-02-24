@@ -1,12 +1,11 @@
-﻿using Panel.Infrastructure.Services;
-using MediatR;
-using Panel.Application.Interfaces.Services;
-using Microsoft.Extensions.DependencyInjection;
+﻿using MediatR;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Panel.Application.Interfaces.Services;
 using Panel.Domain.Interfaces.Repositories;
 using Panel.Infrastructure.Repositories;
-using Microsoft.EntityFrameworkCore;
-using Panel.Infrastructure.Hubs;
+using Panel.Infrastructure.Services;
 
 namespace Panel.Infrastructure.Extensions
 {
@@ -25,7 +24,6 @@ namespace Panel.Infrastructure.Extensions
 				.AddTransient<IMediator, Mediator>()
 				.AddTransient<IAuthenticationService, AuthenticationService>()
 				.AddTransient<ITokenService, TokenService>()
-				.AddTransient<IConsoleHub, ConsoleHub>()
 				.AddSingleton<IFtpManager, FtpManager>()
 				.AddSingleton<IOsInteractionsService, OsInteractionsService>();
 		}

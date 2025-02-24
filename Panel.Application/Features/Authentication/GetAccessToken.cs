@@ -5,7 +5,7 @@ using Panel.Application.Interfaces.Services;
 
 namespace Library.Application.Features.Authentication
 {
-    public class GetAccessToken : Token, IRequest<IActionResult> { }
+	public class GetAccessToken : Token, IRequest<IActionResult> { }
 	public class AccessTokenHandler : IRequestHandler<GetAccessToken, IActionResult>
 	{
 		readonly ITokenService _service;

@@ -6,9 +6,9 @@ namespace Panel.Infrastructure.Services
 {
 	public class FtpManager: IFtpManager
 	{
-		private IProcessManager _processManager;
+		private IOsInteractionsService _processManager;
 
-		public FtpManager(IProcessManager processManager)
+		public FtpManager(IOsInteractionsService processManager)
 		{
 			_processManager = processManager;
 		}

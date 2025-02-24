@@ -83,7 +83,17 @@ namespace ServerPanel
 
 			services.AddAuthorization();
 			services.AddControllers().AddNewtonsoftJson();
-			services.AddSignalR();
+
+			var redisConnection = builder.Configuration["RedisConnection"];
+			services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(redisConnection));
+			services.AddDistributedRedisCache(opts =>
+			{
+				opts.Configuration = redisConnection;
+				opts.InstanceName = "App1:";
+			});
+			services.AddSignalR().AddStackExchangeRedis(redisConnection, 
+				opts => opts.Configuration.ChannelPrefix = "App1");
+
 			var app = builder.Build();
 
 			if (app.Environment.IsDevelopment())

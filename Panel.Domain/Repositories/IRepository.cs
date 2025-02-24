@@ -1,6 +1,8 @@
-﻿namespace Panel.Domain.Interfaces.Repositories
+﻿using Panel.Domain.Models;
+
+namespace Panel.Domain.Interfaces.Repositories
 {
-	public interface IRepository<T> where T : class
+	public interface IRepository<T> where T : AbstractEntity
 	{
 		public IQueryable<T> Entities { get; }
 		public Task<T?> GetByIdAsync(int id);

@@ -6,9 +6,8 @@ using Dapper;
 
 namespace Panel.Domain.Models
 {
-	public class RefreshToken
+	public class RefreshToken: AbstractEntity
 	{
-		public int Id { get; set; }
 		public int UserId { get; set; }
 		public string TokenHash { get; set; }
 		public string TokenSalt { get; set; }

@@ -6,14 +6,16 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Panel.Application.DTOs.AuthenticationRequests;
+using Panel.Infrastructure;
 using Panel.Infrastructure.Extensions;
 using Panel.Infrastructure.Hubs;
+using System;
 using System.Reflection;
-using TokenApp;
+using StackExchange.Redis;
 
 namespace ServerPanel
 {
-    public class Program
+	public class Program
 	{
 		public static void Main(string[] args)
 		{
@@ -33,17 +35,17 @@ namespace ServerPanel
 							// укзывает, будет ли валидироваться издатель при валидации токена
 							ValidateIssuer = true,
 							// строка, представляющая издателя
-							ValidIssuer = AuthOptions.ISSUER,
+							ValidIssuer = TokenBuilder.Issuer,
 
 							// будет ли валидироваться потребитель токена
 							ValidateAudience = true,
 							// установка потребителя токена
-							ValidAudience = AuthOptions.AUDIENCE,
+							ValidAudience = TokenBuilder.Audience,
 							// будет ли валидироваться время существования
 							ValidateLifetime = true,
 
 							// установка ключа безопасности
-							IssuerSigningKey = AuthOptions.GetSymmetricSecurityKey(),
+							IssuerSigningKey = new SymmetricSecurityKey(Convert.FromBase64String(TokenBuilder.Secret)),
 							// валидация ключа безопасности
 							ValidateIssuerSigningKey = true,
 						};

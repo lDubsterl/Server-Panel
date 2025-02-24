@@ -41,14 +41,14 @@ namespace Panel.Application.Features
 			Process cavesProcess = _processManager.CreateCmdProcess($"{serverDirectory}Server_Caves{user.Email}.bat");
 
 
-			masterProcess.OutputDataReceived += async (sender, args) =>
+			/*masterProcess.OutputDataReceived += async (sender, args) =>
 			{
 				if (!string.IsNullOrEmpty(args.Data))
 				{
 					Console.WriteLine(args.Data);
 					await _hub.Send(ServerTypes.DstMaster.ToString(), args.Data + "\n", request.Id);
 				}
-			};
+			};*/
 
 			var masterServer = new RunningServer
 			{
@@ -57,7 +57,7 @@ namespace Panel.Application.Features
 				ServerType = ServerTypes.DstMaster
 			};
 
-			masterProcess.ErrorDataReceived += async (sender, args) =>
+			/*masterProcess.ErrorDataReceived += async (sender, args) =>
 			{
 				if (!string.IsNullOrEmpty(args.Data))
 				{
@@ -73,7 +73,7 @@ namespace Panel.Application.Features
 					Console.WriteLine(args.Data);
 					await _hub.Send(ServerTypes.DstCaves.ToString(), args.Data + "\n", request.Id);
 				}
-			};
+			};*/
 
 			var cavesServer = new RunningServer
 			{
@@ -82,7 +82,7 @@ namespace Panel.Application.Features
 				ServerType = ServerTypes.DstCaves,
 			};
 
-			cavesProcess.ErrorDataReceived += async (sender, args) =>
+			/*cavesProcess.ErrorDataReceived += async (sender, args) =>
 			{
 				if (!string.IsNullOrEmpty(args.Data))
 				{
@@ -96,7 +96,7 @@ namespace Panel.Application.Features
 			masterProcess.BeginErrorReadLine();
 			masterProcess.BeginOutputReadLine();
 			cavesProcess.BeginErrorReadLine();
-			cavesProcess.BeginOutputReadLine();
+			cavesProcess.BeginOutputReadLine();*/
 
 			await _unitOfWork.Repository<RunningServer>().AddAsync(masterServer);
 			await _unitOfWork.Repository<RunningServer>().AddAsync(cavesServer);

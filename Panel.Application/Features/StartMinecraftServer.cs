@@ -8,8 +8,7 @@ using Panel.Domain.Common;
 using Panel.Domain.Interfaces.Repositories;
 using Panel.Domain.Models;
 using Panel.Shared;
-using System.Diagnostics;
-using System.Text;
+using System.Net.WebSockets;
 
 namespace Panel.Application.Features
 {
@@ -45,45 +44,44 @@ namespace Panel.Application.Features
 			var serverRecord = await _unitOfWork.Repository<RunningServer>().Entities.FirstOrDefaultAsync(e => e.UserId == request.Id);
 			var username = user.Email.Replace("@", "");
 			var serverDirectory = $"{_config["ServersDirectory"]}/{username}/Minecraft/";
-			Process serverProcess = _processManager.CreateCmdProcess($"docker run --rm -P -v {serverDirectory}:/usr --name {username} --entrypoint /opt/java/openjdk/bin/java minecraft {user.MinecraftServerExecutable}", serverDirectory);
+			int port = _processManager.FindFreePortInRange(1025, 65535);
+			var serverTask = _processManager.ExecuteCommandAsync($"docker run --rm -p {port}:25565 -v {serverDirectory}:/usr --name {username} --entrypoint /opt/java/openjdk/bin/java minecraft {user.MinecraftServerExecutable}", serverDirectory);
 
-			serverProcess.OutputDataReceived += async (sender, args) =>
-			{
-				if (!string.IsNullOrEmpty(args.Data))
-				{
-					_logger.LogInformation(args.Data);
-					//await _hub.Send(ServerTypes.Minecraft.ToString(), args.Data + "\n", request.Id);
-				}
-			};
+			/*serverProcess.OutputDataReceived += async (sender, args) =>
+			//{
+			//	if (!string.IsNullOrEmpty(args.Data))
+			//	{
+			//		_logger.LogInformation(args.Data);
+			//		//await _hub.Send(ServerTypes.Minecraft.ToString(), args.Data + "\n", request.Id);
+			//	}
+			//};
 
-			serverProcess.ErrorDataReceived += async (sender, args) =>
-			{
-				if (!string.IsNullOrEmpty(args.Data))
-				{
-					_logger.LogInformation(args.Data);
-				}
-			};
-			serverProcess.Start();
-			serverProcess.BeginErrorReadLine();
-			serverProcess.BeginOutputReadLine();
+			//serverProcess.ErrorDataReceived += async (sender, args) =>
+			//{
+			//	if (!string.IsNullOrEmpty(args.Data))
+			//	{
+			//		_logger.LogInformation(args.Data);
+			//	}
+			//};
+			//serverProcess.Start();
+			//serverProcess.BeginErrorReadLine();
+			serverProcess.BeginOutputReadLine();*/
 
-			var server = new RunningServer
+			RunningServer server = new RunningServer
 			{
 				UserId = user.Id,
 				ContainerName = username,
-				ServerType = ServerTypes.Minecraft
+				ServerType = ServerTypes.Minecraft,
+				Port = port
 			};
-			int port;
-			var commandResult = _processManager.ExecuteCommand($"docker port {username}");
-			port = int.TryParse(UTF8Encoding.UTF8.GetBytes(commandResult.Split(':')[^1]), out port) ? port : 0;
-			server.Port = port;
 
 			await _unitOfWork.Repository<RunningServer>().AddAsync(server);
 			await _unitOfWork.Save();
 
 			_ = Task.Run(async () =>
 			{
-				await serverProcess.WaitForExitAsync();
+				await serverTask;
+				await server.ConsoleConnection.CloseAsync(WebSocketCloseStatus.NormalClosure, "", CancellationToken.None);
 				await _unitOfWork.Repository<RunningServer>().DeleteAsync(server);
 				await _unitOfWork.Save();
 			});

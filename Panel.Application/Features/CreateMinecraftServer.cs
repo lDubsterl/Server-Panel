@@ -15,9 +15,9 @@ namespace Panel.Application.Features
 	{
 		private IUnitOfWork _unitOfWork;
 		private IConfiguration _config;
-		private IProcessManager _processManager;
+		private IOsInteractionsService _processManager;
 
-		public CreateMinecraftServerHandler(IUnitOfWork unitOfWork, IConfiguration config, IProcessManager processManager, ILogger<CreateMinecraftServerHandler> logger)
+		public CreateMinecraftServerHandler(IUnitOfWork unitOfWork, IConfiguration config, IOsInteractionsService processManager, ILogger<CreateMinecraftServerHandler> logger)
 		{
 			_unitOfWork = unitOfWork;
 			_config = config;

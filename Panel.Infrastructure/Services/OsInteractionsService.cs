@@ -1,12 +1,16 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using Docker.DotNet.Models;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Web.Administration;
 using Panel.Application.Interfaces.Services;
 using System.Diagnostics;
+using System.Net.Sockets;
+using System.Net;
 using System.Security.Cryptography;
+using Panel.Domain.Models;
 
 namespace Panel.Infrastructure.Services
 {
-	public class ProcessManager: IProcessManager
+	public class OsInteractionsService : IOsInteractionsService
 	{
 		private static string _shellName = "/bin/bash";
 		private static string _baseArguments = "-c ";
@@ -50,6 +54,32 @@ namespace Panel.Infrastructure.Services
 			proc.StartInfo = startInfo;
 
 			return proc;
+		}
+		private static int _potentiallyFreePort = 1025;
+		public int FindFreePortInRange(int rangeStart, int rangeEnd)
+		{
+			int freePort = -1;
+			rangeEnd = rangeEnd > 65535 ? 65535 : rangeEnd;
+			if (_potentiallyFreePort >= rangeStart && _potentiallyFreePort <= rangeEnd)
+				rangeStart = _potentiallyFreePort;
+			for (int i = rangeStart; i <= rangeEnd; i++)
+			{
+				try
+				{
+					using (var tcpListener = new TcpListener(IPAddress.Loopback, i))
+					{
+						tcpListener.Start();
+						tcpListener.Stop();
+						freePort = i;
+						_potentiallyFreePort = i + 1;
+						break;
+					}
+				}
+				catch (SocketException) { }
+			}
+			if (freePort == -1)
+				return FindFreePortInRange(1025, 65535);
+			return freePort;
 		}
 	}
 }

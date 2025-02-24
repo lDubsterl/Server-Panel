@@ -22,11 +22,11 @@ namespace Panel.Application.Features
 	{
 		IConsoleHub _hub;
 		IConfiguration _config;
-		IProcessManager _processManager;
+		IOsInteractionsService _processManager;
 		IUnitOfWork _unitOfWork;
 		ILogger<StartMinecraftServerHandler> _logger;
 
-		public StartMinecraftServerHandler(IConsoleHub hub, IConfiguration config, IProcessManager processManager, IUnitOfWork unitOfWork, ILogger<StartMinecraftServerHandler> logger)
+		public StartMinecraftServerHandler(IConsoleHub hub, IConfiguration config, IOsInteractionsService processManager, IUnitOfWork unitOfWork, ILogger<StartMinecraftServerHandler> logger)
 		{
 			_hub = hub;
 			_config = config;

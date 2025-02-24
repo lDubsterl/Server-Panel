@@ -18,11 +18,11 @@ namespace Panel.Application.Features
 	public class StartDSTServerHandler : IRequestHandler<StartDSTServer, IActionResult>
 	{
 		IUnitOfWork _unitOfWork;
-		IProcessManager _processManager;
+		IOsInteractionsService _processManager;
 		IConfiguration _configuration;
 		IConsoleHub _hub;
 
-		public StartDSTServerHandler(IUnitOfWork unitOfWork, IProcessManager processManager, IConfiguration configuration, IConsoleHub consoleHub)
+		public StartDSTServerHandler(IUnitOfWork unitOfWork, IOsInteractionsService processManager, IConfiguration configuration, IConsoleHub consoleHub)
 		{
 			_unitOfWork = unitOfWork;
 			_processManager = processManager;

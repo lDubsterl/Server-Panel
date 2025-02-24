@@ -10,7 +10,7 @@ namespace Panel.Infrastructure
 		public const string Issuer = "LibraryAPI";
 		public const string Audience = "LibraryUser";
 		public const string Secret = "saujfhaclni67423o17typ239398IBI0p98/dfiksued63qw4kwgqsbewufyssdf";
-		public static async Task<string> GenerateAccessToken(int userId, string role)
+		public static string GenerateAccessToken(int userId, string role)
 		{
 			var tokenHandler = new JwtSecurityTokenHandler();
 
@@ -28,13 +28,13 @@ namespace Panel.Infrastructure
 			};
 
 			var token = tokenHandler.CreateToken(tokenDescriptor);
-			return await Task.Run(() => tokenHandler.WriteToken(token));
+			return tokenHandler.WriteToken(token);
 		}
-		public static async Task<string> GenerateRefreshToken()
+		public static string GenerateRefreshToken()
 		{
 			var randomBytes = new byte[32];
 			var random = RandomNumberGenerator.Create();
-			await Task.Run(() => random.GetBytes(randomBytes));
+			random.GetBytes(randomBytes);
 			return Convert.ToBase64String(randomBytes);
 		}
 	}

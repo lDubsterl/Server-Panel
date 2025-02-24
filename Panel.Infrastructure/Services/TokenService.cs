@@ -22,7 +22,7 @@ namespace Panel.Infrastructure.Services
 			if (userRecord == null)
 				return "";
 
-			var accessToken = await TokenBuilder.GenerateAccessToken(userId, userRecord.Role);
+			var accessToken = TokenBuilder.GenerateAccessToken(userId, userRecord.Role);
 			return accessToken;
 		}
 
@@ -33,8 +33,8 @@ namespace Panel.Infrastructure.Services
 			if (userRecord == null)
 				return new Tokens();
 
-			var accessToken = await TokenBuilder.GenerateAccessToken(userId, userRecord.Role);
-			var refreshToken = await TokenBuilder.GenerateRefreshToken();
+			var accessToken = TokenBuilder.GenerateAccessToken(userId, userRecord.Role);
+			var refreshToken = TokenBuilder.GenerateRefreshToken();
 
 			var salt = PasswordBuilder.GetSecureSalt();
 

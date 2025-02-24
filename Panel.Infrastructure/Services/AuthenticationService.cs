@@ -35,7 +35,7 @@ namespace Panel.Infrastructure.Services
 				return new BadRequestObjectResult(new { Message = "Invalid password" });
 			}
 
-			var token = await Task.Run(() => tokenService.GenerateTokensAsync(user.Id));
+			var token = await tokenService.GenerateTokensAsync(user.Id);
 
 			return new OkObjectResult(new { data = token, Message = "Tokens got successfully" });
 		}

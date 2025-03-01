@@ -1,0 +1,78 @@
+ 
+  .navbar {
+    background-color: #333;
+    color: white;
+    text-align: center;
+    padding: 0.5rem;
+  }
+  
+  .navbar ul {
+    list-style-type: none;
+    margin: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .navbar li {
+    margin-right: 1.5rem;
+  }
+  
+  .navbar a {
+    color: white;
+    text-decoration: none;
+  }
+  
+  .navbar a:hover {
+    text-decoration: underline;
+  }
+  
+  .avatar {
+    border-radius: 50%;
+    cursor: pointer;
+    width: 40px;
+    height: 40px;
+  }
+  
+  .dropdown{
+    margin-left: auto;
+  }
+
+  .dropdown-menu {
+    position: absolute;
+    z-index: 2;
+    background-color: white;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    right: 0.8rem;
+    top: 3.8rem;
+    list-style-type: none;
+    padding: 0.5rem;
+    border-radius: 5px;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .dropdown-menu li {
+    margin-bottom: 0.5rem;
+    margin-right: auto;
+  }
+  
+  .dropdown-menu a, .dropdown-menu button {
+    color: #333;
+    text-decoration: none;
+    background: none;
+    border: none;
+    cursor: pointer;
+    display: block;
+    text-align: left;
+  }
+  
+  .dropdown-menu a:hover, .dropdown-menu button:hover {
+    background-color: #f0f0f0;
+  }
+
+  .authentication-actions-container {
+    display: flex;
+    align-items: center;
+  }
+  

@@ -93,8 +93,7 @@ namespace ServerPanel
 				opts.Configuration = redisConnection;
 				opts.InstanceName = "App1:";
 			});
-			services.AddSignalR().AddStackExchangeRedis(redisConnection, 
-				opts => opts.Configuration.ChannelPrefix = "App1");
+			services.AddSignalR();
 
 			var app = builder.Build();
 

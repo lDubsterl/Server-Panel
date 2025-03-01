@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
 using Panel.Domain.Interfaces.Repositories;
 using Panel.Domain.Models;
+using Panel.Infrastructure.Services;
 using System;
 using System.Linq;
 using System.Net.WebSockets;
@@ -13,19 +14,16 @@ using System.Threading.Tasks;
 
 namespace Panel.Infrastructure.Hubs
 {
-	public class ConsoleHub : Hub
+	public class ConsoleHub(IUnitOfWork unitOfWork) : Hub
 	{
-		private static string _baseUrl = "ws://localhost:2375/containers/";
-		private static string _baseArgs = "/attach/ws?stream=1&stdin=1&stdout=1";
+		private const string _baseUrl = "ws://host.docker.internal:2375/containers/";
+		private const string _baseArgs = "/attach/ws?stream=1&stdin=1&stdout=1";
+		private static readonly WebSocketHubCache _connections = new();
 
-		private IUnitOfWork _unitOfWork;
-		private IDistributedCache _cache;
+		private IUnitOfWork _unitOfWork = unitOfWork;
 
 		private bool _isLogsNeeded = true;
-		public ConsoleHub(IUnitOfWork unitOfWork)
-		{
-			_unitOfWork = unitOfWork;
-		}
+
 		public override async Task OnConnectedAsync()
 		{
 			var containerName = Context.GetHttpContext()?.Request.Query["containerName"].ToString();
@@ -39,15 +37,15 @@ namespace Panel.Infrastructure.Hubs
 
 			ClientWebSocket client;
 			var url = new Uri(_baseUrl + containerName + _baseArgs);
-			if (record.ConsoleConnection == null)
+
+			if (record.ConnectionId == 0)
 			{
 				client = new ClientWebSocket();
-				record.ConsoleConnection = client;
+				record.ConnectionId = _connections.AddConnection(new WebSocketHubCache.ConnectionInfo(client, DateTime.UtcNow));
 			}
 			else
-				client = record.ConsoleConnection;
+				client = _connections.GetConnection(record.ConnectionId);
 
-			_isLogsNeeded = true;
 			if (client.State != WebSocketState.Open)
 			{
 				await client.ConnectAsync(url, CancellationToken.None);
@@ -56,26 +54,25 @@ namespace Panel.Infrastructure.Hubs
 
 			var response = JsonSerializer.Serialize(new
 			{
-				serverId = record.Id,
+				connectionId = record.ConnectionId,
 				message = $"Connected successfully to {record.ContainerName}"
 			});
 			await Clients.Caller.SendAsync("Connected", response);
 			await base.OnConnectedAsync();
 
 			await _unitOfWork.Repository<RunningServer>().UpdateAsync(record);
-			await _cache.SetStringAsync($"{record.GetType().Name}:{record.Id}", JsonSerializer.Serialize(record));
 			await _unitOfWork.Save();
 		}
-		public async Task SendCommand(int serverId, string command)
+		public async Task SendCommand(uint connectionId, string command)
 		{
-			var record = await _unitOfWork.Repository<RunningServer>().GetByIdAsync(serverId);
-			if (record == null)
+			var socket = _connections.GetConnection(connectionId);
+			if (socket == null)
 			{
 				await Clients.Caller.SendAsync("ErrorSend", "Server not found");
 				return;
 			}
 			var cmd = Encoding.UTF8.GetBytes(command + "\n");
-			await record.ConsoleConnection.SendAsync(cmd, WebSocketMessageType.Text, true, CancellationToken.None);
+			await socket.SendAsync(cmd, WebSocketMessageType.Text, true, CancellationToken.None);
 		}
 		public async Task ReceiveLogs(ClientWebSocket clientSocket, IClientProxy client)
 		{

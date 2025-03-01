@@ -1,0 +1,41 @@
+
+.button-container, .button-container-hidden {
+    position: absolute;
+    /* Фиксируем над content */
+    width: 80%;
+    top: 9%;
+    left: 50%;
+    gap: 3px;
+    transform: translateX(-50%);
+    /* Центрируем по горизонтали */
+    display: flex;
+    justify-content: start;
+    z-index: 1;
+}
+
+.button-container-hidden {
+    z-index: 3;
+}
+
+.hover-button, .hover-button-hidden {
+    position: relative;
+    background-color: #edede9;
+    color: black;
+    border: none;
+    padding: 5px 20px 27px;
+    font-size: 16px;
+    font-weight: bolder;
+    cursor: pointer;
+    border-radius: 10px 10px;
+    transition: transform 0.3s ease;
+    box-shadow: 0 -4px 6px rgba(0, 0, 0, 0.5);
+}
+
+.hover-button-hidden {
+    opacity: 0;
+    box-shadow: none;
+}
+
+.hovered {
+    transform: translateY(-8px);
+}

@@ -3,8 +3,9 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Panel.Application.DTOs.ServerRequests;
-using Panel.Application.Features;
+using Panel.Application.Features.ServerInteraction;
 using Panel.Application.Interfaces.Services;
+using Panel.Domain.Common;
 using System.Threading.Tasks;
 
 namespace ServerPanel.Controllers
@@ -31,7 +32,7 @@ namespace ServerPanel.Controllers
 		}
 
 		[HttpPut]
-		public async Task<IActionResult> CreateDSTServer(CreateDSTServer request)
+		public async Task<IActionResult> CreateDSTServer(CreateDSTServerRequest request)
 		{
 			return await _mediator.Send(request);
 		}
@@ -60,39 +61,11 @@ namespace ServerPanel.Controllers
 			return await _mediator.Send(new StartDSTServer(UserId));
 		}
 
-		//[HttpPost]
-		//public StatusCodeResult ExecuteMinecraftServerCommand(JObject obj)
-		//{
-		//	int id = (int)obj.GetValue("id");
-		//	string command = (string)obj.GetValue("command");
-		//	var proc = minecraftServerProcesses.GetValueOrDefault(id);
-		//	if (proc is null)
-		//		return new StatusCodeResult((int)HttpStatusCode.Forbidden);
-		//	proc.StandardInput.WriteLine(command);
-		//	if (command == "stop")
-		//	{
-		//		proc.WaitForExit();
-		//		minecraftServerProcesses.Remove(id);
-		//	}
-		//	return new StatusCodeResult((int)HttpStatusCode.OK);
-		//}
-
-		//[HttpPost]
-		//public StatusCodeResult ExecuteDSTServerCommand(int id, string command, bool isMaster)
-		//{
-		//	Process proc;
-		//	if (isMaster)
-		//		proc = dstServerProcesses[id].First();
-		//	else
-		//		proc = dstServerProcesses[id].Last();
-		//	proc.StandardInput.WriteLine(command);
-		//	if (command.Contains("c_shutdown("))
-		//	{
-		//		proc.WaitForExit();
-		//		dstServerProcesses.Remove(id);
-		//	}
-		//	return new StatusCodeResult((int)HttpStatusCode.OK);
-		//}
+		[HttpGet]
+		public async Task<IActionResult> GetServerSettins(ServerTypes type)
+		{
+			return await _mediator.Send(new GetServerSettingsRequest(UserId, type));
+		}
 
 		//[HttpGet]
 		//public object ParseFile(int id, [Required] string name)

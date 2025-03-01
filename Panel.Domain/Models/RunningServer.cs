@@ -14,6 +14,6 @@ namespace Panel.Domain.Models
 		public string ContainerName { get; set; }
 		public int Port { get; set; }
 		public ServerTypes ServerType { get; set; }
-		public ClientWebSocket ConsoleConnection { get; set; }
+		public uint ConnectionId { get; set; } = 0;
 	}
 }

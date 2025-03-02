@@ -3,18 +3,18 @@
     position: absolute;
     /* Фиксируем над content */
     width: 80%;
-    top: 9%;
+    top: 9vh;
     left: 50%;
     gap: 3px;
     transform: translateX(-50%);
     /* Центрируем по горизонтали */
     display: flex;
     justify-content: start;
-    z-index: 1;
+    z-index: 0;
 }
 
 .button-container-hidden {
-    z-index: 3;
+    z-index: 2;
 }
 
 .hover-button, .hover-button-hidden {

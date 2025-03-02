@@ -13,20 +13,20 @@
 
 .content {
     position: relative;
-    align-self: center;
-    background-color: #edede9;
-    mix-blend-mode: normal;
-    padding: 20px;
-    top: 20%;
-    width: 80%;
-    height: 70vh;
-    overflow-y: auto;
-    text-align: center;
-    border-radius: 10px;
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
-    z-index: 2;
+    align-self: center;
+    padding: 20px;
+    top: 20%;
+    width: 80%;
+    min-width: 430px;
+    height: 70vh;
+    background-color: #edede9;
+    overflow-y: scroll;
+    overflow-x: hidden;
+    text-align: center;
+    border-radius: 10px;
     box-shadow: 0 8px 12px 3px rgba(0, 0, 0, 0.5);
 }
 

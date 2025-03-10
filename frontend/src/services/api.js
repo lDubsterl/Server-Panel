@@ -2,7 +2,7 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
 const api = axios.create({
-	baseURL: 'https://localhost:7104/api/',
+	baseURL: 'http://localhost:5000/api/',
 });
 
 api.interceptors.request.use(config => {
@@ -27,7 +27,7 @@ api.interceptors.response.use(response => {
 		try {
 			const refreshToken = localStorage.getItem('refreshToken');
 			let userId = localStorage.getItem('userId');
-			const response = await api.post('Authentication/GetNewAccessToken', { userId, Token: refreshToken });
+			const response = await api.post('Authentication/Reauthorize', { UserId: userId, JwtToken: refreshToken });
 
 			const newAccessToken = response.data.data;
 

@@ -7,7 +7,7 @@ using Panel.Domain.Interfaces.Repositories;
 using Panel.Domain.Models;
 using Panel.Shared;
 
-namespace Panel.Application.Features.ServerInteraction
+namespace Panel.Application.Features.ServerInteraction.DST
 {
     public class DeleteDSTServer(int id) : IRequest<IActionResult>
     {

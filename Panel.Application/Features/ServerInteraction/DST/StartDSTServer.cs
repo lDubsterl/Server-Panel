@@ -8,7 +8,7 @@ using Panel.Domain.Models;
 using Panel.Shared;
 using System.Diagnostics;
 
-namespace Panel.Application.Features.ServerInteraction
+namespace Panel.Application.Features.ServerInteraction.DST
 {
     public class StartDSTServer(int id) : IRequest<IActionResult>
     {
@@ -20,14 +20,12 @@ namespace Panel.Application.Features.ServerInteraction
         IUnitOfWork _unitOfWork;
         IOsInteractionsService _processManager;
         IConfiguration _configuration;
-        IConsoleHub _hub;
 
-        public StartDSTServerHandler(IUnitOfWork unitOfWork, IOsInteractionsService processManager, IConfiguration configuration, IConsoleHub consoleHub)
+        public StartDSTServerHandler(IUnitOfWork unitOfWork, IOsInteractionsService processManager, IConfiguration configuration)
         {
             _unitOfWork = unitOfWork;
             _processManager = processManager;
             _configuration = configuration;
-            _hub = consoleHub;
         }
 
         public async Task<IActionResult> Handle(StartDSTServer request, CancellationToken cancellationToken)

@@ -11,7 +11,6 @@ using Panel.Infrastructure.Extensions;
 using Panel.Infrastructure.Hubs;
 using System;
 using System.Reflection;
-using StackExchange.Redis;
 
 namespace ServerPanel
 {
@@ -53,7 +52,10 @@ namespace ServerPanel
 			services.AddCors(options =>
 			{
 				options.AddPolicy("CORSPolicy", builder =>
-				builder.AllowAnyMethod().AllowAnyHeader().AllowCredentials().SetIsOriginAllowed((hosts) => true));
+				builder.AllowAnyMethod()
+				.WithOrigins("http://localhost:3000")
+				.AllowAnyHeader()
+				.AllowCredentials());
 			});
 			services.AddSwaggerGen(c =>
 			{
@@ -86,13 +88,13 @@ namespace ServerPanel
 			services.AddAuthorization();
 			services.AddControllers().AddNewtonsoftJson();
 
-			var redisConnection = builder.Configuration["RedisConnection"];
-			services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(redisConnection));
-			services.AddDistributedRedisCache(opts =>
-			{
-				opts.Configuration = redisConnection;
-				opts.InstanceName = "App1:";
-			});
+			//var redisConnection = builder.Configuration["RedisConnection"];
+			//services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(redisConnection));
+			//services.AddDistributedRedisCache(opts =>
+			//{
+			//	opts.Configuration = redisConnection;
+			//	opts.InstanceName = "App1:";
+			//});
 			services.AddSignalR();
 
 			var app = builder.Build();
@@ -108,13 +110,13 @@ namespace ServerPanel
 
 			app.UseRouting();
 
-			app.UseCors();
+			app.UseCors("CORSPolicy");
 
 			app.UseFileServer();
 
-			app.UseAuthorization();
-
 			app.UseAuthentication();
+
+			app.UseAuthorization();
 
 			app.MapHub<ConsoleHub>("/console");
 			app.MapControllers();

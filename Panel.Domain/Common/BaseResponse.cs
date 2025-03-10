@@ -8,8 +8,8 @@ namespace Panel.Shared
 {
 	public class BaseResponse
 	{
-		private bool isSuccess = true;
-		private string message;
+		public bool isSuccess = true;
+		public string message;
 
 		public BaseResponse(string message)
 		{

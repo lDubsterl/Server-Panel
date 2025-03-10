@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Panel.Application.DTOs.ServerRequests;
 using Panel.Application.Features.ServerInteraction;
+using Panel.Application.Features.ServerInteraction.DST;
+using Panel.Application.Features.ServerInteraction.Minecraft;
 using Panel.Application.Interfaces.Services;
 using Panel.Domain.Common;
 using System.Threading.Tasks;
@@ -15,13 +17,11 @@ namespace ServerPanel.Controllers
 	[ApiController, Authorize]
 	public class ServerSelectionController : BaseController
 	{
-		private readonly IConsoleHub _consoleHub;
 		private readonly IConfiguration _config;
 		private readonly IMediator _mediator;
-		public ServerSelectionController(IConfiguration config, IConsoleHub consoleHub, IMediator mediator)
+		public ServerSelectionController(IConfiguration config, IMediator mediator)
 		{
 			_config = config;
-			_consoleHub = consoleHub;
 			_mediator = mediator;
 		}
 
@@ -62,9 +62,21 @@ namespace ServerPanel.Controllers
 		}
 
 		[HttpGet]
-		public async Task<IActionResult> GetServerSettins(ServerTypes type)
+		public async Task<IActionResult> GetServerStatus()
+		{
+			return await _mediator.Send(new GetServerStatusRequest(UserId));
+		}
+
+		[HttpGet]
+		public async Task<IActionResult> GetSettings(ServerTypes type)
 		{
 			return await _mediator.Send(new GetServerSettingsRequest(UserId, type));
+		}
+
+		[HttpPatch]
+		public async Task<IActionResult> UpdateSettings(string[] settings)
+		{
+			return await _mediator.Send(new UpdateMinecraftSettingsRequest(UserId, settings));
 		}
 
 		//[HttpGet]

@@ -11,10 +11,12 @@ const MinecraftServer = () => {
 
     return (
         <div className={styles["background"]}>
-            <TabButtons selectedButton={selectedButton} setSelected={setSelected} />
-            <div className={styles["content"]}>
+            <div className={styles.wrapper}>
+                <TabButtons selectedButton={selectedButton} setSelected={setSelected} />
+                <div className={styles["content"]}>
                     {selectedButton === 'consoleBtnH' && <ServerConsole />}
-                    {selectedButton === 'settingsBtnH' && <MinecraftSettings/>}
+                    {selectedButton === 'settingsBtnH' && <MinecraftSettings />}
+                </div>
             </div>
         </div>
     );

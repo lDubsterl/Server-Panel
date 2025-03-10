@@ -1,10 +1,8 @@
 
 .button-container, .button-container-hidden {
     position: absolute;
-    /* Фиксируем над content */
-    width: 80%;
-    top: 9vh;
-    left: 50%;
+    bottom: 97%;
+    left: 170px;
     gap: 3px;
     transform: translateX(-50%);
     /* Центрируем по горизонтали */

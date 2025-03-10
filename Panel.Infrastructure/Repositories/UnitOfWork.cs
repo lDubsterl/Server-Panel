@@ -8,13 +8,13 @@ namespace Panel.Infrastructure.Repositories
 	public class UnitOfWork: IUnitOfWork
 	{
 		private PanelDbContext _context;
-		private IDistributedCache _cache;
+		//private IDistributedCache _cache;
 		private Hashtable _repositories;
-		public UnitOfWork(PanelDbContext context, IDistributedCache cache)
+		public UnitOfWork(PanelDbContext context/*, IDistributedCache cache*/)
 		{
 			_context = context;
 			_repositories ??= [];
-			_cache = cache;
+			//_cache = cache;
 		}
 
 		public IRepository<T> Repository<T>() where T : AbstractEntity
@@ -25,7 +25,7 @@ namespace Panel.Infrastructure.Repositories
 			if (!_repositories.ContainsKey(type))
 			{
 				//var repositoryInstance = Activator.CreateInstance(typeof(Repository<>).MakeGenericType(typeof(T)), _context);
-				_repositories[type] = new Repository<T>(_context, _cache);
+				_repositories[type] = new Repository<T>(_context/*, _cache*/);
 			}
 			return (IRepository<T>)_repositories[type]!;
 		}

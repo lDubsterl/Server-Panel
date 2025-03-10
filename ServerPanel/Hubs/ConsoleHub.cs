@@ -1,11 +1,17 @@
-﻿using Microsoft.AspNetCore.SignalR;
+﻿using Docker.DotNet.Models;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Logging;
+using Microsoft.OpenApi.Expressions;
+using Panel.Application.Interfaces.Services;
 using Panel.Domain.Interfaces.Repositories;
 using Panel.Domain.Models;
 using Panel.Infrastructure.Services;
 using System;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
@@ -14,16 +20,14 @@ using System.Threading.Tasks;
 
 namespace Panel.Infrastructure.Hubs
 {
-	public class ConsoleHub(IUnitOfWork unitOfWork) : Hub
+	public class ConsoleHub(IUnitOfWork unitOfWork, IOsInteractionsService osInteractionsService, ILogger<ConsoleHub> logger) : Hub
 	{
-		private const string _baseUrl = "ws://host.docker.internal:2375/containers/";
-		private const string _baseArgs = "/attach/ws?stream=1&stdin=1&stdout=1";
-		private static readonly WebSocketHubCache _connections = new();
+		private static readonly HubClientsCache _connections = new();
 
 		private IUnitOfWork _unitOfWork = unitOfWork;
-
-		private bool _isLogsNeeded = true;
-
+		private IOsInteractionsService _processManager = osInteractionsService;
+		private ILogger<ConsoleHub> _logger = logger;
+		private uint _attachId;
 		public override async Task OnConnectedAsync()
 		{
 			var containerName = Context.GetHttpContext()?.Request.Query["containerName"].ToString();
@@ -31,66 +35,100 @@ namespace Panel.Infrastructure.Hubs
 			var record = await _unitOfWork.Repository<RunningServer>().Entities.Where(s => s.ContainerName == containerName).FirstOrDefaultAsync();
 			if (record == null)
 			{
-				await Clients.Caller.SendAsync("ErrorSend", "Server not found");
+				await Clients.Caller.SendAsync("InfoReceive", JsonSerializer.Serialize("Server not found"));
 				return;
 			}
 
-			ClientWebSocket client;
-			var url = new Uri(_baseUrl + containerName + _baseArgs);
+			Process attach;
+
+			// Создаем объект для передачи параметров в теле запроса
 
 			if (record.ConnectionId == 0)
 			{
-				client = new ClientWebSocket();
-				record.ConnectionId = _connections.AddConnection(new WebSocketHubCache.ConnectionInfo(client, DateTime.UtcNow));
+				attach = _processManager.CreateCmdProcess("docker attach " + containerName);
+				record.ConnectionId = _connections.AddConnection(new ConnectionInfo(Context.ConnectionId, attach, DateTime.UtcNow));
+				_attachId = record.ConnectionId;
+				attach.ErrorDataReceived += async (sender, args) =>
+				{
+					if (!string.IsNullOrEmpty(args.Data))
+					{
+						_logger.LogInformation("[STDERR] " + args.Data);
+					}
+				};
+				attach.Start();
+				attach.BeginErrorReadLine();
+				attach.BeginOutputReadLine();
 			}
 			else
-				client = _connections.GetConnection(record.ConnectionId);
-
-			if (client.State != WebSocketState.Open)
 			{
-				await client.ConnectAsync(url, CancellationToken.None);
-				_ = ReceiveLogs(client, Clients.Caller);
+				attach = _connections.GetConnection(record.ConnectionId).AttachProcess;
+				_connections.SetConnectionId(Context.ConnectionId, record.ConnectionId);
 			}
 
-			var response = JsonSerializer.Serialize(new
+			SendLogsToClient(record.ConnectionId, Clients.Caller);
+
+			var successResponse = JsonSerializer.Serialize(new
 			{
 				connectionId = record.ConnectionId,
 				message = $"Connected successfully to {record.ContainerName}"
 			});
-			await Clients.Caller.SendAsync("Connected", response);
+			await Clients.Caller.SendAsync("InfoReceive", successResponse);
 			await base.OnConnectedAsync();
 
 			await _unitOfWork.Repository<RunningServer>().UpdateAsync(record);
 			await _unitOfWork.Save();
 		}
-		public async Task SendCommand(uint connectionId, string command)
+		public void SendLogsToClient(uint id, IClientProxy client)
 		{
-			var socket = _connections.GetConnection(connectionId);
-			if (socket == null)
+			var conn = _connections.GetConnection(id);
+
+			var _outputDataReceivedHandler = new DataReceivedEventHandler(async (sender, e) =>
 			{
-				await Clients.Caller.SendAsync("ErrorSend", "Server not found");
+				if (!string.IsNullOrEmpty(e.Data))
+				{
+					await client.SendAsync("Receive", e.Data);
+				}
+			});
+
+			if (conn.Handler != null)
+				conn.AttachProcess.OutputDataReceived -= conn.Handler;
+			conn.AttachProcess.OutputDataReceived += _outputDataReceivedHandler;
+			_connections.SetHandler(id, _outputDataReceivedHandler);
+		}
+
+		public async Task ReceiveCommandFromClient(uint connectionId, string command)
+		{
+			var attachConnection = _connections.GetConnection(connectionId);
+			if (attachConnection == null)
+			{
+				await Clients.Caller.SendAsync("InfoReceive", JsonSerializer.Serialize("Server not found"));
 				return;
 			}
-			var cmd = Encoding.UTF8.GetBytes(command + "\n");
-			await socket.SendAsync(cmd, WebSocketMessageType.Text, true, CancellationToken.None);
-		}
-		public async Task ReceiveLogs(ClientWebSocket clientSocket, IClientProxy client)
-		{
-			var buffer = new byte[1024];
-			while (clientSocket.State == WebSocketState.Open && _isLogsNeeded)
+			if (string.IsNullOrWhiteSpace(command)) return;
+			await attachConnection.AttachProcess.StandardInput.WriteLineAsync(command);
+			await attachConnection.AttachProcess.StandardInput.FlushAsync();
+			if (command == "stop")
 			{
-				var result = await clientSocket.ReceiveAsync(buffer, CancellationToken.None);
-				var message = Encoding.UTF8.GetString(buffer, 0, result.Count);
-
-				await client.SendAsync("Receive", message, CancellationToken.None);
+				_connections.RemoveConnection(Context.ConnectionId);
 			}
-			if (clientSocket.State != WebSocketState.Open)
-				await clientSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "", CancellationToken.None);
 		}
-		public override Task OnDisconnectedAsync(Exception exception)
+		public override async Task OnDisconnectedAsync(Exception exception)
 		{
-			_isLogsNeeded = false;
-			return base.OnDisconnectedAsync(exception);
+			var id = _connections.GetConnectionId(Context.ConnectionId);
+			if ((DateTime.UtcNow - _connections.GetLastUsingTime(id)) > TimeSpan.FromMinutes(10))
+			{
+				_connections.RemoveConnection(Context.ConnectionId);
+				var rep = _unitOfWork.Repository<RunningServer>();
+				var record = await rep.Entities.Where(server => server.ConnectionId == _attachId).FirstAsync();
+				record.ConnectionId = 0;
+				await rep.UpdateAsync(record);
+				await _unitOfWork.Save();
+			}
+			else
+			{
+				_connections.RemoveHubConnection(Context.ConnectionId);
+			}
+			await base.OnDisconnectedAsync(exception);
 		}
 
 	}

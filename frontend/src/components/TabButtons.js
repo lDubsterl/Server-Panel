@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import styles from "../styles/TabButtons.module.css";
 
-const TabButtons = ({selectedButton, setSelected}) => {
+const TabButtons = ({ selectedButton, setSelected, ref }) => {
     const [hoveredButton, setHovered] = useState(null);
 
     const onHovered = (event) => {
@@ -49,6 +49,7 @@ const TabButtons = ({selectedButton, setSelected}) => {
                     onClick={onSelected}
                 >Файлы</button>
                 <button
+                    ref={ref}
                     id="settingsBtnH"
                     className={styles["hover-button-hidden"]}
                     onMouseEnter={onHovered}

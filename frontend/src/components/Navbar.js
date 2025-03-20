@@ -35,7 +35,7 @@ const Navbar = ({ isAuthenticated, onLogout }) => {
           <ul className={styles['dropdown-menu']}>
             {isAuthenticated ? (
               <>
-                <li><Link to={`/profile/${localStorage.getItem('userId')}`}>Profile</Link></li>
+                <li><Link to={`/profile`}>Profile</Link></li>
                 <li><a onClick={onLogout}>Logout</a></li>
               </>
             ) : (

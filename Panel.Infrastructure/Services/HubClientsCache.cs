@@ -12,24 +12,26 @@ using System.Threading.Tasks;
 
 namespace Panel.Infrastructure.Services
 {
-	public class ConnectionInfo(string hubConnectionId, Process attachProcess, DateTime lastUsingTime)
+	public class ConnectionInfo(string hubConnectionId, string containerName, Process attachProcess, DateTime lastUsingTime)
 	{
 		public string HubConnectionId { get; } = hubConnectionId;
 		public Process AttachProcess { get; } = attachProcess;
 		public DateTime LastUsingTime { get; set; } = lastUsingTime;
-		public DataReceivedEventHandler? Handler { get; set; }
+		public string ContainerName { get; } = containerName;
+		public DataReceivedEventHandler? Handler {  get; set; }
 	}
 	public class HubClientsCache
 	{
-		public class ProcessInfo(Process attachProcess, DateTime lastUsingTime)
+		public class ProcessInfo(string containerName, Process attachProcess, DateTime lastUsingTime)
 		{
+			public string ContainerName { get; } = containerName;
 			public Process AttachProcess { get; } = attachProcess;
 			public DateTime LastUsingTime { get; set; } = lastUsingTime;
-			public DataReceivedEventHandler? Handler { get; set; }
+			public DataReceivedEventHandler? Handler { get; set; } 
 		}
 
 		private readonly ushort _maxConnectionsAmount = 21000;
-		private ushort _currentRecordsAmount = 0;
+		private int _currentRecordsAmount = 0;
 		private uint _id = 1;
 		private readonly ConcurrentDictionary<string, uint> _connectionIds = new();
 		private readonly ConcurrentDictionary<uint, ProcessInfo> _connections = new();
@@ -41,7 +43,11 @@ namespace Panel.Infrastructure.Services
 				_connections[id].LastUsingTime = DateTime.UtcNow;
 			return info;
 		}
-		public uint GetConnectionId(string hubConnectionId) => _connectionIds[hubConnectionId];
+		public uint GetConnectionId(string hubConnectionId)
+		{
+			_connectionIds.TryGetValue(hubConnectionId, out var info);
+			return info;
+		}
 		public DateTime GetLastUsingTime(uint id) => _connections[id].LastUsingTime;
 
 		public void SetHandler(uint id, DataReceivedEventHandler handler)
@@ -57,7 +63,7 @@ namespace Panel.Infrastructure.Services
 			{
 				checked
 				{
-					_connections[_id] = new ProcessInfo(connInfo.AttachProcess, connInfo.LastUsingTime);
+					_connections[_id] = new ProcessInfo(connInfo.ContainerName, connInfo.AttachProcess, connInfo.LastUsingTime);
 					SetConnectionId(connInfo.HubConnectionId, _id);
 				}
 			}
@@ -66,12 +72,13 @@ namespace Panel.Infrastructure.Services
 				_id = 1;
 				_connections.Clear();
 				_connectionIds.Clear();
-				_connections[_id] = new ProcessInfo(connInfo.AttachProcess, connInfo.LastUsingTime);
+				_connections[_id] = new ProcessInfo(connInfo.ContainerName, connInfo.AttachProcess, connInfo.LastUsingTime);
 				SetConnectionId(connInfo.HubConnectionId, _id);
 			}
 
-			_currentRecordsAmount++;
-			return _id++;
+			_currentRecordsAmount = Interlocked.Increment(ref _currentRecordsAmount);
+			_id = Interlocked.Increment(ref _id);
+			return _id - 1;
 		}
 
 		public bool RemoveHubConnection(string hubId)
@@ -79,20 +86,27 @@ namespace Panel.Infrastructure.Services
 			var isRemoved2 = _connectionIds.TryRemove(hubId, out _);
 			return isRemoved2;
 		}
+
 		public bool RemoveConnection(string hubId)
 		{
-			var processId = _connectionIds[hubId];
-			var isRemoved2 = RemoveHubConnection(hubId);
+			var hubExists = _connectionIds.TryGetValue(hubId, out var processId);
+			if (!hubExists) return false;
 
-			bool isRemoved = false;
+			var isServerRemoved = RemoveServerConnection(hubId, out var proc);
+			var isHubRemoved = isServerRemoved && RemoveHubConnection(hubId);
+			if (!isHubRemoved)
+				_connections[processId] = proc;
 
-			if (isRemoved2)
-			{
-				_connections[processId].AttachProcess.Kill();
-				isRemoved = _connections.TryRemove(processId, out _);
-			}
-			if (isRemoved) _currentRecordsAmount--;
-			return isRemoved;
+			if (isHubRemoved) _currentRecordsAmount = Interlocked.Decrement(ref _currentRecordsAmount);
+			return isHubRemoved;
+		}
+		private bool RemoveServerConnection(string hubId, out ProcessInfo processInfo)
+		{
+			_connectionIds.TryGetValue(hubId, out var processId);
+
+			_connections[processId].AttachProcess.Kill();
+			var isProcRemoved = _connections.TryRemove(processId, out processInfo);
+			return isProcRemoved;
 		}
 		private void RemoveIrreleventRecords()
 		{

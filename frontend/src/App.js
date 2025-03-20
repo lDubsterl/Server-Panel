@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Routes, Route, useNavigate } from 'react-router-dom';
 import MinecraftServer from './Pages/MinecraftServer';
 import Navbar from './components/Navbar';
-import api from './services/api';
+import ApiConfig from './services/api';
 import './App.css';
 
 const App = () => {
@@ -11,7 +11,7 @@ const App = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    api.get('/Authentication/Verify')
+    ApiConfig.api.get('/Authentication/Verify')
   .then(response => {
     setIsAuthenticated(true);
     setIsAdmin(response.data);
@@ -20,9 +20,8 @@ const App = () => {
   }, []);
 
   const handleLogout = () => {
-    api.post('/Authentication/LogOut')
+    ApiConfig.api.post('/Authentication/LogOut')
       .then(() => {
-        localStorage.removeItem('userId');
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
         setIsAuthenticated(false);

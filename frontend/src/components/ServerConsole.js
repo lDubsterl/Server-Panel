@@ -1,5 +1,5 @@
 import { React, useState, useEffect, useRef } from 'react';
-import api from '../services/api';
+import ApiConfig from '../services/api';
 import { HubConnectionBuilder } from '@microsoft/signalr';
 
 import styles from "../styles/MinecraftConsole.module.css";
@@ -34,6 +34,14 @@ const ServerConsole = () => {
             setLogs((prevMessages) => [...prevMessages, message]);
         });
 
+        newConnection.on('ServerStopped', () => {
+            newConnection.stop()
+                .then(() => console.log("Web socket session terminated"));
+            setStopped(true);
+            setAddress('сервер не запущен');
+            connectionRef.current = null;
+        });
+
         newConnection.start()
             .then(() => {
                 console.log('Connected to SignalR Hub');
@@ -57,13 +65,10 @@ const ServerConsole = () => {
                     console.log('Command sent!');
                     setLogs((prevLogs) => [...prevLogs, msg || commandToSend]);
                     setCommand('');
-                    if (msg || commandToSend == 'stop') {
-                        setStopped(true);
-                        setAddress('сервер не запущен');
-                    }
                 })
                 .catch((err) => {
-                    console.error('Error sending message: ', err);
+                    if (!msg)
+                        console.error('Error sending message: ', err);
                 });
         }
     };
@@ -80,7 +85,7 @@ const ServerConsole = () => {
     }, []);
 
     useEffect(() => {
-        api.get(`ServerSelection/${localStorage.getItem("userId")}/GetServerStatus`)
+        ApiConfig.api.get(`${ApiConfig.genericServerController}/GetServerStatus`)
             .then((response) => {
                 if (response.data.isStarted) {
                     setStopped(!response.data.isStarted);
@@ -93,7 +98,7 @@ const ServerConsole = () => {
 
     const changeServerStatus = () => {
         if (stopped) {
-            api.get(`ServerSelection/${localStorage.getItem("userId")}/StartMinecraftServer`)
+            ApiConfig.api.get(`${ApiConfig.minecraftController}/StartMinecraftServer`)
                 .then((response) => {
                     setStopped(!stopped);
                     setAddress(response.data.address);

@@ -1,6 +1,6 @@
 import { React, useState, useEffect } from 'react';
-import styles from '../styles/MinecraftSettings.module.css'
-import api from '../services/api';
+import styles from '../styles/MinecraftSettings.module.css';
+import ApiConfig from '../services/api';
 
 const GroupedInput = ({ name, inputType, listKey, values, style, onChange }) => {
     return (
@@ -62,7 +62,7 @@ const MinecraftSettings = () => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        api.get(`ServerSelection/${localStorage.getItem("userId")}/GetSettings`, {
+        ApiConfig.api.get(`${ApiConfig.genericServerController}/GetSettings`, {
             params: { type: "Minecraft" }
         })
             .then(response => {
@@ -85,7 +85,7 @@ const MinecraftSettings = () => {
     };
 
     const save = () => {
-        api.patch(`ServerSelection/${localStorage.getItem("userId")}/UpdateSettings`, formatSettings(newValues))
+        ApiConfig.api.patch(`${ApiConfig.minecraftController}/UpdateFile`, {path: 'Minecraft/server.properties', content: formatSettings(newValues)})
             .then(() => {
                 console.log("save complete");
                 setOldValues(newValues);

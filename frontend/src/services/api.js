@@ -1,11 +1,17 @@
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
-const api = axios.create({
-	baseURL: 'http://localhost:5000/api/',
-});
+const ApiConfig = {
+	authenticationController: 'Authentication',
+	genericServerController: 'ServerSelection',
+	dstController: 'ServeSelection',
+	minecraftController: 'ServerSelection',
+	api: axios.create({
+		baseURL: 'http://localhost:5000/api/',
+	})
+}
 
-api.interceptors.request.use(config => {
+ApiConfig.api.interceptors.request.use(config => {
 	const token = localStorage.getItem('accessToken');
 	if (token) {
 		config.headers.Authorization = `Bearer ${token}`;
@@ -13,8 +19,18 @@ api.interceptors.request.use(config => {
 	return config;
 });
 
+const parseJwt = (token) => {
+	var base64Url = token.split('.')[1];
+	var base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+	var jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function (c) {
+		return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+	}).join(''));
+
+	return JSON.parse(jsonPayload);
+}
+
 // Перехватчик для обработки 401 ошибки
-api.interceptors.response.use(response => {
+ApiConfig.api.interceptors.response.use(response => {
 	return response; // Если все прошло успешно, просто возвращаем ответ
 }, async error => {
 	//const navigate = useNavigate();
@@ -26,8 +42,8 @@ api.interceptors.response.use(response => {
 
 		try {
 			const refreshToken = localStorage.getItem('refreshToken');
-			let userId = localStorage.getItem('userId');
-			const response = await api.post('Authentication/Reauthorize', { UserId: userId, JwtToken: refreshToken });
+			let userId = parseJwt(localStorage.getItem('accessToken')).nameid;
+			const response = await ApiConfig.api.post(`${ApiConfig.authenticationController}/Reauthorize`, { UserId: userId, JwtToken: refreshToken });
 
 			const newAccessToken = response.data.data;
 
@@ -36,7 +52,7 @@ api.interceptors.response.use(response => {
 
 			// Обновляем Authorization заголовок в оригинальном запросе и повторно его отправляем
 			originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
-			return api(originalRequest);
+			return ApiConfig.api(originalRequest);
 		} catch (refreshError) {
 			console.error('Error refreshing token', refreshError);
 			//navigate('/login');
@@ -47,4 +63,4 @@ api.interceptors.response.use(response => {
 });
 
 
-export default api;
+export default ApiConfig;

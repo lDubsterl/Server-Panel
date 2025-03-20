@@ -1,21 +1,15 @@
-﻿using Docker.DotNet.Models;
-using Microsoft.AspNetCore.SignalR;
+﻿using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Microsoft.OpenApi.Expressions;
 using Panel.Application.Interfaces.Services;
 using Panel.Domain.Interfaces.Repositories;
 using Panel.Domain.Models;
 using Panel.Infrastructure.Services;
 using System;
 using System.Diagnostics;
-using System.IO;
 using System.Linq;
-using System.Net.Http;
 using System.Net.WebSockets;
-using System.Text;
 using System.Text.Json;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace Panel.Infrastructure.Hubs
@@ -27,7 +21,6 @@ namespace Panel.Infrastructure.Hubs
 		private IUnitOfWork _unitOfWork = unitOfWork;
 		private IOsInteractionsService _processManager = osInteractionsService;
 		private ILogger<ConsoleHub> _logger = logger;
-		private uint _attachId;
 		public override async Task OnConnectedAsync()
 		{
 			var containerName = Context.GetHttpContext()?.Request.Query["containerName"].ToString();
@@ -35,20 +28,17 @@ namespace Panel.Infrastructure.Hubs
 			var record = await _unitOfWork.Repository<RunningServer>().Entities.Where(s => s.ContainerName == containerName).FirstOrDefaultAsync();
 			if (record == null)
 			{
-				await Clients.Caller.SendAsync("InfoReceive", JsonSerializer.Serialize("Server not found"));
+				await Clients.Caller.SendAsync("Error", JsonSerializer.Serialize("Server not found"));
 				return;
 			}
 
 			Process attach;
 
-			// Создаем объект для передачи параметров в теле запроса
-
 			if (record.ConnectionId == 0)
 			{
 				attach = _processManager.CreateCmdProcess("docker attach " + containerName);
-				record.ConnectionId = _connections.AddConnection(new ConnectionInfo(Context.ConnectionId, attach, DateTime.UtcNow));
-				_attachId = record.ConnectionId;
-				attach.ErrorDataReceived += async (sender, args) =>
+				record.ConnectionId = _connections.AddConnection(new ConnectionInfo(Context.ConnectionId, containerName, attach, DateTime.UtcNow));
+				attach.ErrorDataReceived += (sender, args) =>
 				{
 					if (!string.IsNullOrEmpty(args.Data))
 					{
@@ -78,6 +68,7 @@ namespace Panel.Infrastructure.Hubs
 			await _unitOfWork.Repository<RunningServer>().UpdateAsync(record);
 			await _unitOfWork.Save();
 		}
+
 		public void SendLogsToClient(uint id, IClientProxy client)
 		{
 			var conn = _connections.GetConnection(id);
@@ -101,7 +92,7 @@ namespace Panel.Infrastructure.Hubs
 			var attachConnection = _connections.GetConnection(connectionId);
 			if (attachConnection == null)
 			{
-				await Clients.Caller.SendAsync("InfoReceive", JsonSerializer.Serialize("Server not found"));
+				await Clients.Caller.SendAsync("Error", JsonSerializer.Serialize("Server not found"));
 				return;
 			}
 			if (string.IsNullOrWhiteSpace(command)) return;
@@ -109,26 +100,52 @@ namespace Panel.Infrastructure.Hubs
 			await attachConnection.AttachProcess.StandardInput.FlushAsync();
 			if (command == "stop")
 			{
+				await WaitForContainerStopAsync(attachConnection.ContainerName);
+
+				var rep = _unitOfWork.Repository<RunningServer>();
+				var record = await rep.Entities.Where(server => server.ContainerName == attachConnection.ContainerName).FirstAsync();
+				record.ConnectionId = 0;
+
 				_connections.RemoveConnection(Context.ConnectionId);
+				await rep.UpdateAsync(record);
+				await _unitOfWork.Save();
+				await Clients.Caller.SendAsync("ServerStopped");
 			}
 		}
 		public override async Task OnDisconnectedAsync(Exception exception)
 		{
 			var id = _connections.GetConnectionId(Context.ConnectionId);
-			if ((DateTime.UtcNow - _connections.GetLastUsingTime(id)) > TimeSpan.FromMinutes(10))
-			{
-				_connections.RemoveConnection(Context.ConnectionId);
-				var rep = _unitOfWork.Repository<RunningServer>();
-				var record = await rep.Entities.Where(server => server.ConnectionId == _attachId).FirstAsync();
-				record.ConnectionId = 0;
-				await rep.UpdateAsync(record);
-				await _unitOfWork.Save();
-			}
-			else
-			{
-				_connections.RemoveHubConnection(Context.ConnectionId);
-			}
+			if (id != 0)
+				if ((DateTime.UtcNow - _connections.GetLastUsingTime(id)) > TimeSpan.FromMinutes(10))
+				{
+					var exists = _connections.RemoveConnection(Context.ConnectionId);
+					if (exists)
+					{
+						var rep = _unitOfWork.Repository<RunningServer>();
+						var record = await rep.Entities.Where(server => server.ConnectionId == id).FirstAsync();
+						record.ConnectionId = 0;
+						await rep.UpdateAsync(record);
+						await _unitOfWork.Save();
+					}
+				}
+				else
+				{
+					_connections.RemoveHubConnection(Context.ConnectionId);
+				}
 			await base.OnDisconnectedAsync(exception);
+		}
+		private async Task WaitForContainerStopAsync(string containerName, int timeoutSeconds = 10)
+		{
+			var stopwatch = Stopwatch.StartNew();
+			while (stopwatch.Elapsed < TimeSpan.FromSeconds(timeoutSeconds))
+			{
+				var result = _processManager.ExecuteCommand($"docker inspect -f '{{{{.State.Running}}}}' {containerName}");
+				if (result.Trim() == "false")
+					return;
+				await Task.Delay(500); // Подождем полсекунды перед повторной проверкой
+			}
+			_processManager.ExecuteCommand($"docker kill {containerName}");
+			return;
 		}
 
 	}

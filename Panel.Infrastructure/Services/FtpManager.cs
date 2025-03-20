@@ -1,5 +1,5 @@
 ﻿using Panel.Application.Interfaces.Services;
-using Panel.Shared;
+using Panel.Domain.Common;
 using System.Security.Cryptography;
 
 namespace Panel.Infrastructure.Services

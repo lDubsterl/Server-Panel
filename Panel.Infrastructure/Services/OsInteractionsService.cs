@@ -1,12 +1,7 @@
-﻿using Docker.DotNet.Models;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Web.Administration;
-using Panel.Application.Interfaces.Services;
+﻿using Panel.Application.Interfaces.Services;
 using System.Diagnostics;
-using System.Net.Sockets;
 using System.Net;
-using System.Security.Cryptography;
-using Panel.Domain.Models;
+using System.Net.Sockets;
 
 namespace Panel.Infrastructure.Services
 {

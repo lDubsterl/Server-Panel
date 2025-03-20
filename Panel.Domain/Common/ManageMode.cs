@@ -1,4 +1,4 @@
-﻿namespace Panel.Shared
+﻿namespace Panel.Domain.Common
 {
 	public enum ManageMode
 	{

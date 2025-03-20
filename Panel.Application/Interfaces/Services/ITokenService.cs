@@ -1,10 +1,10 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Panel.Application.DTOs.AuthenticationRequests;
+using Panel.Domain.Common;
 using Panel.Domain.Models;
-using Panel.Application.DTOs.AuthenticationRequests;
 
 namespace Panel.Application.Interfaces.Services
 {
-    public interface ITokenService
+	public interface ITokenService
 	{
 		Task<string> GenerateAccessTokenAsync(int userId);
 		Task<Tokens> GenerateTokensAsync(int userId);

@@ -11,7 +11,7 @@ namespace Library.Application.Features.Authentication
 			Id = id;
 		}
 
-		public int Id { get; set; }
+		public int Id { get; }
 
 	}
 	public class LogOutHandler : IRequestHandler<LogOutRequest, IActionResult>

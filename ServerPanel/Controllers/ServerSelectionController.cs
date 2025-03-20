@@ -6,14 +6,13 @@ using Panel.Application.DTOs.ServerRequests;
 using Panel.Application.Features.ServerInteraction;
 using Panel.Application.Features.ServerInteraction.DST;
 using Panel.Application.Features.ServerInteraction.Minecraft;
-using Panel.Application.Interfaces.Services;
 using Panel.Domain.Common;
 using System.Threading.Tasks;
 
 namespace ServerPanel.Controllers
 {
 
-	[Route("api/[controller]/{id}/[action]")]
+	[Route("api/[controller]/[action]")]
 	[ApiController, Authorize]
 	public class ServerSelectionController : BaseController
 	{
@@ -74,41 +73,15 @@ namespace ServerPanel.Controllers
 		}
 
 		[HttpPatch]
-		public async Task<IActionResult> UpdateSettings(string[] settings)
+		public async Task<IActionResult> UpdateFile(UpdateFileRequest request)
 		{
-			return await _mediator.Send(new UpdateMinecraftSettingsRequest(UserId, settings));
+			return await _mediator.Send(new UpdateFileRequest(UserId, request.Path, request.Content));
 		}
 
-		//[HttpGet]
-		//public object ParseFile(int id, [Required] string name)
-		//{
-		//	UserAccount user = GetUser(id);
-		//	name = $"{_serversRoot}{user.Email}\\" + name;
-		//	if (System.IO.File.Exists(name))
-		//	{
-		//		return System.IO.File.ReadAllText(name);
-		//	}
-		//	if (System.IO.Directory.Exists(name))
-		//	{
-		//		var content = System.IO.Directory.GetFileSystemEntries(name);
-		//		var formattedPathes = content;
-		//		int i = 0;
-		//		foreach (var str in content)
-		//		{
-		//			formattedPathes[i++] = str.Replace(@"\\", @"\");
-		//		}
-		//		return formattedPathes;
-		//	}
-		//	return "";
-		//}
-
-		//[HttpPatch]
-		//public StatusCodeResult WriteFile(int id, [Required] string name, string fileContent)
-		//{
-		//	UserAccount user = GetUser(id);
-		//	var text = fileContent.Split("\\r\\n");
-		//	System.IO.File.WriteAllLines($"{_serversRoot}{user.Email}\\{name}", text);
-		//	return new StatusCodeResult((int)HttpStatusCode.OK);
-		//}
+		[HttpGet]
+		public async Task<IActionResult> GetFolderContent(string path)
+		{
+			return await _mediator.Send(new GetContentRequest(UserId, path));
+		}
 	}
 }

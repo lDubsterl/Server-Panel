@@ -1,11 +1,11 @@
 ﻿using MediatR;
 using Microsoft.AspNetCore.Mvc;
-using Panel.Application.DTOs.AuthenticationRequests;
 using Panel.Application.Interfaces.Services;
+using Panel.Domain.Common;
 
 namespace Library.Application.Features.Authentication
 {
-    public class RefreshToken : Token, IRequest<IActionResult> { }
+	public class RefreshToken : Token, IRequest<IActionResult> { }
 	public class RefreshTokenHandler : IRequestHandler<RefreshToken, IActionResult>
 	{
 		ITokenService _service;

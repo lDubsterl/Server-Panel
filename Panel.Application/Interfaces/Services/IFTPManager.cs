@@ -1,4 +1,4 @@
-﻿using Panel.Shared;
+﻿using Panel.Domain.Common;
 
 namespace Panel.Application.Interfaces.Services
 {

@@ -1,6 +1,5 @@
 ﻿using MediatR;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -8,13 +7,11 @@ using Panel.Application.Interfaces.Services;
 using Panel.Domain.Common;
 using Panel.Domain.Interfaces.Repositories;
 using Panel.Domain.Models;
-using Panel.Shared;
 using System.Diagnostics;
-using System.Net.WebSockets;
 
 namespace Panel.Application.Features.ServerInteraction.Minecraft
 {
-    public class StartMinecraftServer(int id) : IRequest<IActionResult>
+	public class StartMinecraftServer(int id) : IRequest<IActionResult>
     {
         public int Id { get; } = id;
     }

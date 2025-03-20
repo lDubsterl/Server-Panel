@@ -6,15 +6,15 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Panel.Application.DTOs.AuthenticationRequests;
-using Panel.Infrastructure;
 using Panel.Infrastructure.Extensions;
 using Panel.Infrastructure.Hubs;
+using Panel.Infrastructure.Services;
 using System;
 using System.Reflection;
 
 namespace ServerPanel
 {
-	public class Program
+    public class Program
 	{
 		public static void Main(string[] args)
 		{

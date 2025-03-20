@@ -3,14 +3,14 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Panel.Application.DTOs.ServerRequests;
 using Panel.Application.Interfaces.Services;
+using Panel.Domain.Common;
 using Panel.Domain.Interfaces.Repositories;
 using Panel.Domain.Models;
-using Panel.Shared;
 
 namespace Panel.Application.Features.ServerInteraction.DST
 {
 
-    public class CreateDSTServerHandler : IRequestHandler<CreateDSTServerRequest, IActionResult>
+	public class CreateDSTServerHandler : IRequestHandler<CreateDSTServerRequest, IActionResult>
     {
         IConfiguration _config;
         IUnitOfWork _unitOfWork;
@@ -47,10 +47,11 @@ namespace Panel.Application.Features.ServerInteraction.DST
 
             var ini = File.ReadAllText($"{serversRoot}DST templates\\master_server.txt");
             File.WriteAllText(serverDirectory + "Master\\server.ini", ini);
+
             ini = File.ReadAllText($"{serversRoot}DST templates\\caves_server.txt");
             File.WriteAllText(serverDirectory + "Caves\\server.ini", ini);
-            ini = File.ReadAllText($"{serversRoot}DST templates\\caves_worldgen.txt");
 
+            ini = File.ReadAllText($"{serversRoot}DST templates\\caves_worldgen.txt");
             File.WriteAllText(serverDirectory + "Caves\\worldgenoverride.lua", ini);
 
             var cluster = File.ReadAllLines($"{serversRoot}DST templates\\cluster_template.txt");
@@ -62,6 +63,7 @@ namespace Panel.Application.Features.ServerInteraction.DST
             var server = File.ReadAllText($"{serversRoot}DST templates\\Server_Master.txt");
             server = server.Replace("MyDediServer", accUser.Email);
             File.WriteAllText($"{dstDedicatedServerRoot}Don't Starve Together Dedicated Server\\bin\\Server_Master{accUser.Email}.bat", server);
+
             server = File.ReadAllText($"{serversRoot}DST templates\\Server_Caves.txt");
             server = server.Replace("MyDediServer", accUser.Email);
             File.WriteAllText($"{dstDedicatedServerRoot}Don't Starve Together Dedicated Server\\bin\\Server_Caves{accUser.Email}.bat", server);

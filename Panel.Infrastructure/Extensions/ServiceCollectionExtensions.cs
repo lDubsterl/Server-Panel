@@ -9,7 +9,7 @@ using Panel.Infrastructure.Services;
 
 namespace Panel.Infrastructure.Extensions
 {
-	public static class ServiceCollectionExtensions
+    public static class ServiceCollectionExtensions
 	{
 		public static void AddInfrastructureLayer(this IServiceCollection services, IConfiguration config)
 		{

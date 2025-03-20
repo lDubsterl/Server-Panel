@@ -2,9 +2,9 @@
 using Microsoft.EntityFrameworkCore;
 using Panel.Application.DTOs.AuthenticationRequests;
 using Panel.Application.Interfaces.Services;
+using Panel.Domain.Common;
 using Panel.Domain.Interfaces.Repositories;
 using Panel.Domain.Models;
-using Panel.Shared;
 
 namespace Panel.Infrastructure.Services
 {

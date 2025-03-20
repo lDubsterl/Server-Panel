@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using Panel.Application.DTOs.AuthenticationRequests;
 using Panel.Application.Interfaces.Services;
+using Panel.Domain.Common;
 using Panel.Domain.Models;
 
 namespace Panel.Infrastructure.Services

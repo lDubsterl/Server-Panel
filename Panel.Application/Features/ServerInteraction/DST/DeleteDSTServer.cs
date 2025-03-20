@@ -5,11 +5,10 @@ using Microsoft.Extensions.Configuration;
 using Panel.Domain.Common;
 using Panel.Domain.Interfaces.Repositories;
 using Panel.Domain.Models;
-using Panel.Shared;
 
 namespace Panel.Application.Features.ServerInteraction.DST
 {
-    public class DeleteDSTServer(int id) : IRequest<IActionResult>
+	public class DeleteDSTServer(int id) : IRequest<IActionResult>
     {
         public int Id { get; } = id;
     }

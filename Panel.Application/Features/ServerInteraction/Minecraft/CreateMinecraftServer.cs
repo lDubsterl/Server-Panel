@@ -4,9 +4,9 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Panel.Application.DTOs.ServerRequests;
 using Panel.Application.Interfaces.Services;
+using Panel.Domain.Common;
 using Panel.Domain.Interfaces.Repositories;
 using Panel.Domain.Models;
-using Panel.Shared;
 
 namespace Panel.Application.Features.ServerInteraction.Minecraft
 {
@@ -42,7 +42,6 @@ namespace Panel.Application.Features.ServerInteraction.Minecraft
 			if (!Directory.Exists(serverDirectory))
 				Directory.CreateDirectory(serverDirectory);
 
-			var task = repository.UpdateAsync(client);
 			if (request.ServerExecutableName.Contains("forge") || request.ServerExecutableName.Contains("fabric"))
 			{
 				await _processManager.ExecuteCommandAsync($"java -jar ../../{request.ServerExecutableName} --installServer", serverDirectory);
@@ -58,7 +57,7 @@ namespace Panel.Application.Features.ServerInteraction.Minecraft
 			var eula = "eula=true";
 			File.WriteAllText(serverDirectory + "eula.txt", eula);
 
-			await task;
+			await repository.UpdateAsync(client);
 			await _unitOfWork.Save();
 			return new OkObjectResult(new BaseResponse("Created succesfully"));
 		}

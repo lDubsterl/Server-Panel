@@ -5,7 +5,7 @@ using System.Collections;
 
 namespace Panel.Infrastructure.Repositories
 {
-	public class UnitOfWork: IUnitOfWork
+    public class UnitOfWork: IUnitOfWork
 	{
 		private PanelDbContext _context;
 		//private IDistributedCache _cache;

@@ -1,7 +1,7 @@
 ﻿using MediatR;
 using Microsoft.AspNetCore.Mvc;
-using Panel.Application.DTOs.AuthenticationRequests;
 using Panel.Application.Interfaces.Services;
+using Panel.Domain.Common;
 
 namespace Library.Application.Features.Authentication
 {

@@ -18,11 +18,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Panel.Domain\Panel.Domain.csproj" />
-    <ProjectReference Include="..\Panel.Shared\Panel.Shared.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Common\" />
   </ItemGroup>
 
 </Project>

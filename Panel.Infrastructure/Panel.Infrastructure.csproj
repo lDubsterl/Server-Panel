@@ -19,7 +19,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Panel.Application\Panel.Application.csproj" />
-    <ProjectReference Include="..\Panel.Shared\Panel.Shared.csproj" />
   </ItemGroup>
 	
 </Project>

@@ -1,4 +1,4 @@
-﻿namespace Panel.Application.DTOs.AuthenticationRequests
+﻿namespace Panel.Domain.Common
 {
     public class Token
     {

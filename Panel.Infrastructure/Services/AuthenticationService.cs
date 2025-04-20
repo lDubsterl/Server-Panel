@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Panel.Application.DTOs.AuthenticationRequests;
 using Panel.Application.Interfaces.Services;
 using Panel.Domain.Common;
@@ -10,18 +11,20 @@ namespace Panel.Infrastructure.Services
 {
 	public class AuthenticationService : IAuthenticationService
 	{
-		private readonly ITokenService tokenService;
+		private readonly ITokenService _tokenService;
 		private readonly IUnitOfWork _unitOfWork;
 		private readonly IFtpManager _manager;
+		private readonly IConfiguration _configuration;
 
-		public AuthenticationService(ITokenService tokenService, IUnitOfWork unitOfWork, IFtpManager manager)
-		{
-			this.tokenService = tokenService;
-			_unitOfWork = unitOfWork;
-			_manager = manager;
-		}
+        public AuthenticationService(ITokenService tokenService, IUnitOfWork unitOfWork, IFtpManager manager, IConfiguration configuration)
+        {
+            _tokenService = tokenService;
+            _unitOfWork = unitOfWork;
+            _manager = manager;
+            _configuration = configuration;
+        }
 
-		public async Task<IActionResult> LoginAsync(Login loginRequest)
+        public async Task<IActionResult> LoginAsync(Login loginRequest)
 		{
 			var user = await _unitOfWork.Repository<User>().Entities.FirstOrDefaultAsync(e => e.Email == loginRequest.Email);
 			if (user == null)
@@ -35,7 +38,7 @@ namespace Panel.Infrastructure.Services
 				return new BadRequestObjectResult(new { Message = "Invalid password" });
 			}
 
-			var token = await tokenService.GenerateTokensAsync(user.Id);
+			var token = await _tokenService.GenerateTokensAsync(user.Id);
 
 			return new OkObjectResult(new { data = token, Message = "Tokens got successfully" });
 		}
@@ -99,6 +102,8 @@ namespace Panel.Infrastructure.Services
 			var saveResponse = await _unitOfWork.Save();
 			if (saveResponse >= 0)
 			{
+				var servers = _configuration["ServersDirectory"] + "/";
+				Directory.CreateDirectory(servers + signupRequest.Email.Replace("@", ""));
 				return new OkObjectResult(new { data = user.Email, Message = $"{user.Email} Registered successfully" });
 			}
 

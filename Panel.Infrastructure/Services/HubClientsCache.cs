@@ -1,14 +1,6 @@
-﻿using Docker.DotNet.Models;
-using Microsoft.EntityFrameworkCore.Metadata;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
-using System;
+﻿using Panel.Domain.Common;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Net.WebSockets;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Panel.Infrastructure.Services
 {
@@ -18,7 +10,6 @@ namespace Panel.Infrastructure.Services
 		public Process AttachProcess { get; } = attachProcess;
 		public DateTime LastUsingTime { get; set; } = lastUsingTime;
 		public string ContainerName { get; } = containerName;
-		public DataReceivedEventHandler? Handler {  get; set; }
 	}
 	public class HubClientsCache
 	{
@@ -27,7 +18,7 @@ namespace Panel.Infrastructure.Services
 			public string ContainerName { get; } = containerName;
 			public Process AttachProcess { get; } = attachProcess;
 			public DateTime LastUsingTime { get; set; } = lastUsingTime;
-			public DataReceivedEventHandler? Handler { get; set; } 
+			public DataReceivedEventHandler? Handler { get; set; }
 		}
 
 		private readonly ushort _maxConnectionsAmount = 21000;
@@ -96,8 +87,8 @@ namespace Panel.Infrastructure.Services
 			var isHubRemoved = isServerRemoved && RemoveHubConnection(hubId);
 			if (!isHubRemoved)
 				_connections[processId] = proc;
-
-			if (isHubRemoved) _currentRecordsAmount = Interlocked.Decrement(ref _currentRecordsAmount);
+			else
+				_currentRecordsAmount = Interlocked.Decrement(ref _currentRecordsAmount);
 			return isHubRemoved;
 		}
 		private bool RemoveServerConnection(string hubId, out ProcessInfo processInfo)
@@ -114,9 +105,7 @@ namespace Panel.Infrastructure.Services
 					.Select(conn => conn.Key)
 					.ToList();
 			foreach (var key in keys)
-			{
 				RemoveConnection(key);
-			}
 		}
 	}
 }

@@ -9,45 +9,43 @@ using Panel.Domain.Models;
 namespace Panel.Application.Features.ServerInteraction.DST
 {
 	public class DeleteDSTServer(int id) : IRequest<IActionResult>
-    {
-        public int Id { get; } = id;
-    }
+	{
+		public int Id { get; } = id;
+	}
 
-    public class DeleteDSTServerHandler : IRequestHandler<DeleteDSTServer, IActionResult>
-    {
-        private IUnitOfWork _unitOfWork;
-        private IConfiguration _config;
+	public class DeleteDSTServerHandler : IRequestHandler<DeleteDSTServer, IActionResult>
+	{
+		private IUnitOfWork _unitOfWork;
+		private IConfiguration _config;
 
-        public DeleteDSTServerHandler(IUnitOfWork unitOfWork, IConfiguration config)
-        {
-            _unitOfWork = unitOfWork;
-            _config = config;
-        }
+		public DeleteDSTServerHandler(IUnitOfWork unitOfWork, IConfiguration config)
+		{
+			_unitOfWork = unitOfWork;
+			_config = config;
+		}
 
-        public async Task<IActionResult> Handle(DeleteDSTServer request, CancellationToken cancellationToken)
-        {
-            var repository = _unitOfWork.Repository<User>();
-            var user = await repository.GetByIdAsync(request.Id);
-            var dstDedicatedServerRoot = _config["DST_CLI_Directory"];
+		public async Task<IActionResult> Handle(DeleteDSTServer request, CancellationToken cancellationToken)
+		{
+			var repository = _unitOfWork.Repository<User>();
+			var user = await repository.GetByIdAsync(request.Id);
 
-            if (user == null) return new BadRequestObjectResult(new BaseResponse(false, "User not found"));
+			if (user == null) return new BadRequestObjectResult(new BaseResponse(false, "User not found"));
 
-            Directory.Delete(_config["ServersDirectory"] + user.Email.Replace("@", "") + "/Minecraft/", true);
+			Directory.Delete(_config["ServersDirectory"] + "/" + user.Email.Replace("@", "") + "/DoNotStarveTogether/", true);
 
-            File.Delete(@$"{dstDedicatedServerRoot}Don't Starve Together Dedicated Server\bin\Server_Caves{user.Email}.bat");
-            File.Delete(@$"{dstDedicatedServerRoot}Don't Starve Together Dedicated Server\bin\Server_Master{user.Email}.bat");
+			user.DSTServer = false;
 
-            user.DSTServer = false;
-            await repository.UpdateAsync(user);
-            var processesRepository = _unitOfWork.Repository<RunningServer>();
-            await processesRepository.Entities.Where(el => el.UserId == request.Id &&
-            (el.ServerType == ServerTypes.DstMaster || el.ServerType == ServerTypes.DstCaves))
-                .ForEachAsync(async el => await processesRepository.DeleteAsync(el));
-            await _unitOfWork.Save();
+			var processesRepository = _unitOfWork.Repository<RunningServer>();
+			var entity = await processesRepository.Entities.FirstOrDefaultAsync(el => el.UserId == request.Id &&
+			el.ServerType == ServerTypes.DstMaster);
 
-            return new OkObjectResult(new BaseResponse("Server deleted successfully"));
+			await repository.UpdateAsync(user);
+			if (entity is not null) 
+				await processesRepository.DeleteAsync(entity);
+			await _unitOfWork.Save();
 
-            //dstServerProcesses.Remove(id);
-        }
-    }
+			return new OkObjectResult(new BaseResponse("Server deleted successfully"));
+
+		}
+	}
 }

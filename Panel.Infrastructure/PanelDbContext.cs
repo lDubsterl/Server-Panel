@@ -15,7 +15,6 @@ namespace Panel.Infrastructure
         public DbSet<RunningServer> RunningServers => Set<RunningServer>();
         public PanelDbContext(DbContextOptions<PanelDbContext> options) : base(options)
         {
-            Database.EnsureCreated();
         }
     }
 }

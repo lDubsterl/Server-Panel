@@ -25,7 +25,7 @@ namespace Panel.Infrastructure.Extensions
 				.AddTransient<IAuthenticationService, AuthenticationService>()
 				.AddTransient<ITokenService, TokenService>()
 				.AddSingleton<IFtpManager, FtpManager>()
-				.AddSingleton<IOsInteractionsService, OsInteractionsService>();
+				.AddSingleton<IOsInteraction, OsInteraction>();
 		}
 
 		public static void AddDbContext(this IServiceCollection services, IConfiguration configuration)

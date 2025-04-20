@@ -6,15 +6,17 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Panel.Application.DTOs.AuthenticationRequests;
+using Panel.Infrastructure;
 using Panel.Infrastructure.Extensions;
 using Panel.Infrastructure.Hubs;
 using Panel.Infrastructure.Services;
+using StackExchange.Redis;
 using System;
 using System.Reflection;
 
 namespace ServerPanel
 {
-    public class Program
+	public class Program
 	{
 		public static void Main(string[] args)
 		{
@@ -48,7 +50,7 @@ namespace ServerPanel
 							// валидация ключа безопасности
 							ValidateIssuerSigningKey = true,
 						};
-					});
+					});            
 			services.AddCors(options =>
 			{
 				options.AddPolicy("CORSPolicy", builder =>
@@ -88,16 +90,22 @@ namespace ServerPanel
 			services.AddAuthorization();
 			services.AddControllers().AddNewtonsoftJson();
 
-			//var redisConnection = builder.Configuration["RedisConnection"];
-			//services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(redisConnection));
-			//services.AddDistributedRedisCache(opts =>
-			//{
-			//	opts.Configuration = redisConnection;
-			//	opts.InstanceName = "App1:";
-			//});
+			var redisConnection = builder.Configuration["RedisConnection"];
+			services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(redisConnection));
+			services.AddDistributedRedisCache(opts =>
+			{
+				opts.Configuration = redisConnection;
+				opts.InstanceName = "App1:";
+			});
 			services.AddSignalR();
 
 			var app = builder.Build();
+
+			using (var scope = app.Services.CreateScope())
+			{
+				var db = scope.ServiceProvider.GetRequiredService<PanelDbContext>();
+				db.Database.EnsureCreated();
+			}
 
 			if (app.Environment.IsDevelopment())
 			{

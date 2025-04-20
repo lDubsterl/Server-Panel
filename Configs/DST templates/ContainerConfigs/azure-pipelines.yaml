@@ -1,0 +1,207 @@
+name: $(Date:yyyyMMdd).$(Rev:r)
+variables:
+  DOCKER_IMAGE_BASENAME: "jamesits/dst-server"
+
+trigger:
+  batch: true
+  branches:
+    include: [ "master" ]
+  paths:
+    include: [ "*" ]
+    exclude: [ "README.md" ]
+
+pr:
+  autoCancel: true
+  branches:
+    include:
+    - master
+  paths:
+    exclude:
+    - README.md
+    
+schedules:
+  - cron: "0 3 * * *"
+    displayName: nightly build
+    always: true
+    branches:
+      include:
+      - master
+
+jobs:
+  # code style check
+  - job: code_check
+    displayName: "check"
+    pool:
+      vmImage: "ubuntu-latest"
+    workspace:
+      clean: all
+    timeoutInMinutes: 10
+    condition: ne(variables['Build.Reason'], 'Schedule')
+
+    steps:
+      - checkout: self
+        clean: true
+        submodules: true
+  
+      - bash: |
+          sudo apt-get update -y
+          sudo apt-get install -y shellcheck
+        displayName: "Install build dependencies"
+  
+      - bash: |
+          shellcheck scripts_system/*
+        displayName: "shellcheck"
+        continueOnError: true
+
+  # different variants
+  - job: docker
+    displayName: "docker build"
+    pool:
+      vmImage: "ubuntu-latest"
+    workspace:
+      clean: all
+    timeoutInMinutes: 40
+    condition: ne(variables['Build.Reason'], 'Schedule')
+
+    strategy:
+      matrix:
+        vanilla_debian_buster:
+          DOCKER_TAGS: 'latest vanilla'
+          BASE_IMAGE: 'debian:buster-slim'
+          DST_DOWNLOAD: '1'
+          DST_USER: 'dst'
+          DST_GROUP: 'dst'
+          STEAMCMD_PATH: '/opt/steamcmd/steamcmd.sh'
+        vanilla_debian_buster_slim:
+          DOCKER_TAGS: 'latest-slim vanilla-slim'
+          BASE_IMAGE: 'debian:buster-slim'
+          DST_DOWNLOAD: '0'
+          DST_USER: 'dst'
+          DST_GROUP: 'dst'
+          STEAMCMD_PATH: '/opt/steamcmd/steamcmd.sh'
+        vanilla_debian_bullseye_slim: # experimental
+          BASE_IMAGE: 'debian:bullseye-slim'
+          DST_DOWNLOAD: '0'
+          DST_USER: 'dst'
+          DST_GROUP: 'dst'
+          STEAMCMD_PATH: '/opt/steamcmd/steamcmd.sh'
+        cm2network_steamcmd:
+          DOCKER_TAGS: 'steamcmd-rebase'
+          BASE_IMAGE: 'cm2network/steamcmd:root'
+          DST_DOWNLOAD: '1'
+          DST_USER: 'steam'
+          DST_GROUP: 'steam'
+          STEAMCMD_PATH: '/home/steam/steamcmd/steamcmd.sh'
+        cm2network_steamcmd_slim:
+          DOCKER_TAGS: 'steamcmd-rebase-slim'
+          BASE_IMAGE: 'cm2network/steamcmd:root'
+          DST_DOWNLOAD: '0'
+          DST_USER: 'steam'
+          DST_GROUP: 'steam'
+          STEAMCMD_PATH: '/home/steam/steamcmd/steamcmd.sh'
+        steamcmd_steamcmd: # verification only
+          BASE_IMAGE: 'steamcmd/steamcmd:ubuntu'
+          DST_DOWNLOAD: '1'
+          DST_USER: 'dst'
+          DST_GROUP: 'dst'
+          STEAMCMD_PATH: '/usr/games/steamcmd'
+        steamcmd_steamcmd_slim: # verification only
+          BASE_IMAGE: 'steamcmd/steamcmd:ubuntu'
+          DST_DOWNLOAD: '0'
+          DST_USER: 'dst'
+          DST_GROUP: 'dst'
+          STEAMCMD_PATH: '/usr/games/steamcmd'
+
+    steps:
+    - checkout: self
+      clean: true
+      submodules: true
+
+    - bash: |
+        set -Eeuo pipefail
+        docker build -t dst \
+          --build-arg BASE_IMAGE=$(BASE_IMAGE) \
+          --build-arg STEAMCMD_PATH=$(STEAMCMD_PATH) \
+          --build-arg DST_DOWNLOAD=$(DST_DOWNLOAD) \
+          --build-arg DST_USER=$(DST_USER) \
+          --build-arg DST_GROUP=$(DST_GROUP) \
+          .
+
+        docker images --digests dst
+      displayName: "Build image"
+
+    - task: Docker@1
+      displayName: "Docker login"
+      condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'), ne(variables['Build.Reason'], 'PullRequest'))
+      inputs:
+        containerregistrytype: 'Container Registry'
+        dockerRegistryEndpoint: "Docker Hub: Jamesits"
+        command: login
+
+    - bash: |
+        set -Eeuo pipefail
+
+        if [ -z "$(DOCKER_TAGS)" ]; then
+          echo "No tags to push"
+          exit 0
+        fi
+
+        IFS=' ' read -ra TAGS <<< "$(DOCKER_TAGS)"
+        for TAG in "${TAGS[@]}"; do
+          echo "Tagging $(DOCKER_IMAGE_BASENAME):${TAG}"
+          docker tag dst $(DOCKER_IMAGE_BASENAME):${TAG}
+          docker push $(DOCKER_IMAGE_BASENAME):${TAG}
+        done
+      displayName: "Push image"
+      condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'), ne(variables['Build.Reason'], 'PullRequest'))
+
+    - task: Docker@1
+      displayName: "Docker logout"
+      condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'), ne(variables['Build.Reason'], 'PullRequest'))
+      inputs:
+        containerregistrytype: 'Container Registry'
+        dockerRegistryEndpoint: "Docker Hub: Jamesits"
+        command: logout
+
+  # a vanilla image with all default build arguments
+  - job: docker_nightly
+    displayName: "docker build nightly"
+    pool:
+      vmImage: "ubuntu-latest"
+    workspace:
+      clean: all
+    timeoutInMinutes: 40
+
+    steps:
+    - checkout: self
+      clean: true
+      submodules: true
+
+    - bash: |
+        set -Eeuo pipefail
+        docker build -t dst .
+        docker images --digests dst
+      displayName: "Build image"
+
+    - task: Docker@1
+      displayName: "Docker login"
+      condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'), ne(variables['Build.Reason'], 'PullRequest'))
+      inputs:
+        containerregistrytype: 'Container Registry'
+        dockerRegistryEndpoint: "Docker Hub: Jamesits"
+        command: login
+
+    - bash: |
+        set -Eeuo pipefail
+        docker tag dst $(DOCKER_IMAGE_BASENAME):nightly
+        docker push $(DOCKER_IMAGE_BASENAME):nightly
+      displayName: "Push image"
+      condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'), ne(variables['Build.Reason'], 'PullRequest'))
+
+    - task: Docker@1
+      displayName: "Docker logout"
+      condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'), ne(variables['Build.Reason'], 'PullRequest'))
+      inputs:
+        containerregistrytype: 'Container Registry'
+        dockerRegistryEndpoint: "Docker Hub: Jamesits"
+        command: logout

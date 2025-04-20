@@ -21,7 +21,7 @@ const Files = ({ settingsRef, serverType }) => {
     }
 
     const getContent = (filePath) => {
-        if (filePath.split('/').slice(-1) == 'server.properties') {
+        if (filePath.split('/').slice(-1) === 'server.properties') {
             settingsRef.current.click();
             return
         }

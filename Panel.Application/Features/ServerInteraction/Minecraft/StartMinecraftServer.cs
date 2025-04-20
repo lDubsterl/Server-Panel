@@ -12,59 +12,56 @@ using System.Diagnostics;
 namespace Panel.Application.Features.ServerInteraction.Minecraft
 {
 	public class StartMinecraftServer(int id) : IRequest<IActionResult>
-    {
-        public int Id { get; } = id;
-    }
+	{
+		public int Id { get; } = id;
+	}
 
-    public class StartMinecraftServerHandler : IRequestHandler<StartMinecraftServer, IActionResult>
-    {
-        IConfiguration _config;
-        IOsInteractionsService _processManager;
-        IUnitOfWork _unitOfWork;
-        ILogger<StartMinecraftServerHandler> _logger;
-        IServiceScopeFactory _scopeFactory;
+	public class StartMinecraftServerHandler : IRequestHandler<StartMinecraftServer, IActionResult>
+	{
+		IConfiguration _config;
+		IOsInteraction _processManager;
+		IUnitOfWork _unitOfWork;
+		IServiceScopeFactory _scopeFactory;
 
-		public StartMinecraftServerHandler(IConfiguration config, IOsInteractionsService processManager, 
-            IUnitOfWork unitOfWork, ILogger<StartMinecraftServerHandler> logger, IServiceScopeFactory scopeFactory)
+		public StartMinecraftServerHandler(IConfiguration config, IOsInteraction processManager, 
+			IUnitOfWork unitOfWork, IServiceScopeFactory scopeFactory)
 		{
 			_config = config;
 			_processManager = processManager;
 			_unitOfWork = unitOfWork;
-			_logger = logger;
 			_scopeFactory = scopeFactory;
 		}
 
 		public async Task<IActionResult> Handle(StartMinecraftServer request, CancellationToken cancellationToken)
-        {
-            var user = await _unitOfWork.Repository<User>().GetByIdAsync(request.Id);
+		{
+			var user = await _unitOfWork.Repository<User>().GetByIdAsync(request.Id);
 
-            if (user is null || user.MinecraftServerExecutable == "")
-                return new BadRequestObjectResult(new BaseResponse(false, "There are no existing servers to run"));
+			if (user is null || user.MinecraftServerExecutable == "")
+				return new BadRequestObjectResult(new BaseResponse(false, "There are no existing servers to run"));
 
-            var username = user.Email.Replace("@", "");
-            var serverDirectory = $"{_config["ServersDirectory"]}/{username}/Minecraft/";
-            int port = _processManager.FindFreePortInRange(1025, 65535);
-            var serverProcess = _processManager.CreateCmdProcess($"docker run --rm -i -p {port}:25565 -v {serverDirectory}:/usr --name {username} --entrypoint /opt/java/openjdk/bin/java minecraft {user.MinecraftServerExecutable}");
+			var username = user.Email.Replace("@", "");
+			var serverDirectory = $"{_config["ServersDirectory"]}/{username}/Minecraft/";
+			int port = _processManager.FindFreePortInRange(1025, 65535);
+			var serverProcess = _processManager.CreateCmdProcess($"docker run --rm -i -p {port}:25565 -v {serverDirectory}:/usr --name {username}Minecraft " +
+				$"--entrypoint /opt/java/openjdk/bin/java minecraft {user.MinecraftServerExecutable}");
 
-            RunningServer server = new RunningServer
-            {
-                UserId = user.Id,
-                ContainerName = username,
-                ServerType = ServerTypes.Minecraft,
-                Port = port
-            };
+			RunningServer server = new RunningServer
+			{
+				UserId = user.Id,
+				ContainerName = username + "Minecraft",
+				ServerType = ServerTypes.Minecraft,
+				Port = port
+			};
 
-            serverProcess.Start();
-            //serverProcess.BeginErrorReadLine();
-            //serverProcess.BeginOutputReadLine();
-            var serverTask = serverProcess.WaitForExitAsync();
+			serverProcess.Start();
+			var serverTask = serverProcess.WaitForExitAsync();
 
-            await _unitOfWork.Repository<RunningServer>().AddAsync(server);
-            await _unitOfWork.Save();
-            var serverId = server.Id;
-            _ = Task.Run(async () =>
-            {
-                await serverTask;
+			await _unitOfWork.Repository<RunningServer>().AddAsync(server);
+			await _unitOfWork.Save();
+			var serverId = server.Id;
+			_ = Task.Run(async () =>
+			{
+				await serverTask;
 				using var scope = _scopeFactory.CreateScope();
 				var scopedUnitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
 
@@ -75,27 +72,16 @@ namespace Panel.Application.Features.ServerInteraction.Minecraft
 					await scopedUnitOfWork.Save();
 				}
 			});
-            await WaitForContainerAsync(username);
-            return new OkObjectResult(new
-            {
-                isSuccess = true,
-                message = "Server is starting...",
-                address = _processManager.ExecuteCommand("curl ifconfig.me") + ":" + port,
-                containerName = username
-            });
-        }
-		private async Task<bool> WaitForContainerAsync(string containerName, int timeoutSeconds = 30)
-		{
-			var stopwatch = Stopwatch.StartNew();
-			while (stopwatch.Elapsed < TimeSpan.FromSeconds(timeoutSeconds))
+			await _processManager.WaitForContainerAsync(username + "Minecraft", true);
+			return new OkObjectResult(new
 			{
-				var result = _processManager.ExecuteCommand($"docker inspect -f '{{{{.State.Running}}}}' {containerName}");
-				if (result.Trim() == "true")
-					return true;
-				await Task.Delay(500); // Подождем полсекунды перед повторной проверкой
-			}
-			return false;
+				isSuccess = true,
+				message = "Server is starting...",
+				address = _processManager.ExecuteCommand("curl ifconfig.me") + ":" + port,
+				containerName = username + "Minecraft"
+			});
 		}
+		
 	}
 
 }

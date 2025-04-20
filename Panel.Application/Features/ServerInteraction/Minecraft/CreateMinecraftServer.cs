@@ -15,9 +15,9 @@ namespace Panel.Application.Features.ServerInteraction.Minecraft
 	{
 		private IUnitOfWork _unitOfWork;
 		private IConfiguration _config;
-		private IOsInteractionsService _processManager;
+		private IOsInteraction _processManager;
 
-		public CreateMinecraftServerHandler(IUnitOfWork unitOfWork, IConfiguration config, IOsInteractionsService processManager, ILogger<CreateMinecraftServerHandler> logger)
+		public CreateMinecraftServerHandler(IUnitOfWork unitOfWork, IConfiguration config, IOsInteraction processManager, ILogger<CreateMinecraftServerHandler> logger)
 		{
 			_unitOfWork = unitOfWork;
 			_config = config;

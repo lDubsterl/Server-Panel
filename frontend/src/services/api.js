@@ -4,8 +4,9 @@ import { useNavigate } from 'react-router-dom';
 const ApiConfig = {
 	authenticationController: 'Authentication',
 	genericServerController: 'ServerSelection',
-	dstController: 'ServeSelection',
+	dstController: 'ServerSelection',
 	minecraftController: 'ServerSelection',
+	userController: 'User',
 	api: axios.create({
 		baseURL: 'http://localhost:5000/api/',
 	})
@@ -29,11 +30,21 @@ const parseJwt = (token) => {
 	return JSON.parse(jsonPayload);
 }
 
+export const getServerTypeNumber = (type) => {
+	const serverTypes = {
+	  Minecraft: 2,
+	  Terraria: 3,
+	  DoNotStarveTogether: 0
+	};
+  
+	return serverTypes[type] != null ? serverTypes[type] : -1;
+  };
+
+
 // Перехватчик для обработки 401 ошибки
 ApiConfig.api.interceptors.response.use(response => {
 	return response; // Если все прошло успешно, просто возвращаем ответ
 }, async error => {
-	//const navigate = useNavigate();
 	const originalRequest = error.config;
 
 	// Проверяем, если ошибка 401 и запрос не был уже перезапущен
@@ -49,13 +60,13 @@ ApiConfig.api.interceptors.response.use(response => {
 
 			// Сохраняем новый токен
 			localStorage.setItem('accessToken', newAccessToken);
-
+			localStorage.setItem('id', parseJwt(localStorage.getItem('accessToken')).nameid);
 			// Обновляем Authorization заголовок в оригинальном запросе и повторно его отправляем
 			originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
 			return ApiConfig.api(originalRequest);
 		} catch (refreshError) {
 			console.error('Error refreshing token', refreshError);
-			//navigate('/login');
+			window.location.href = '/';
 		}
 	}
 

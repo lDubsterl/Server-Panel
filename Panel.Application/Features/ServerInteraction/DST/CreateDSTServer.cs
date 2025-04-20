@@ -6,70 +6,80 @@ using Panel.Application.Interfaces.Services;
 using Panel.Domain.Common;
 using Panel.Domain.Interfaces.Repositories;
 using Panel.Domain.Models;
+using System.Text.RegularExpressions;
 
 namespace Panel.Application.Features.ServerInteraction.DST
 {
 
 	public class CreateDSTServerHandler : IRequestHandler<CreateDSTServerRequest, IActionResult>
-    {
-        IConfiguration _config;
-        IUnitOfWork _unitOfWork;
-        IFtpManager _processManager;
+	{
+		IConfiguration _config;
+		IUnitOfWork _unitOfWork;
+		IFtpManager _processManager;
 
-        public CreateDSTServerHandler(IConfiguration config, IUnitOfWork unitOfWork, IFtpManager processManager)
-        {
-            _config = config;
-            _unitOfWork = unitOfWork;
-            _processManager = processManager;
-        }
+		public CreateDSTServerHandler(IConfiguration config, IUnitOfWork unitOfWork, IFtpManager processManager)
+		{
+			_config = config;
+			_unitOfWork = unitOfWork;
+			_processManager = processManager;
+		}
 
-        public async Task<IActionResult> Handle(CreateDSTServerRequest request, CancellationToken cancellationToken)
-        {
-            var repository = _unitOfWork.Repository<User>();
-            User? accUser = await repository.GetByIdAsync(request.Id);
+		public async Task<IActionResult> Handle(CreateDSTServerRequest request, CancellationToken cancellationToken)
+		{
+			var repository = _unitOfWork.Repository<User>();
+			User? accUser = await repository.GetByIdAsync(request.Id);
 
-            if (accUser == null)
-                return new NotFoundObjectResult(new BaseResponse(false, "There is no user with such id"));
-            if (accUser.DSTServer)
-                return new ConflictObjectResult(new BaseResponse(false, "Server is already created"));
+			if (accUser == null)
+				return new NotFoundObjectResult(new BaseResponse(false, "There is no user with such id"));
+			if (accUser.DSTServer)
+				return new ConflictObjectResult(new BaseResponse(false, "Server is already created"));
 
-            var serversRoot = _config["ServersDirectory"];
-            var serverDirectory = _config["DSTServerDirectory"];
-            var dstDedicatedServerRoot = _config["DST_CLI_Directory"];
-            Directory.CreateDirectory(serverDirectory + accUser.Email);
-            File.Copy(serverDirectory + "cluster_token.txt", serverDirectory + accUser.Email + "\\cluster_token.txt");
-            serverDirectory += accUser.Email + "\\";
-            Directory.CreateDirectory(serverDirectory + "Master");
-            Directory.CreateDirectory(serverDirectory + "Caves");
+			var serversRoot = _config["ServersDirectory"];
+			var username = accUser.Email.Replace("@", "");
+			var serverDirectory = serversRoot + $"/{username}/DoNotStarveTogether/DST/";
 
-            accUser.DSTServer = true;
-            var task = repository.UpdateAsync(accUser);
+			if (!Directory.Exists(serverDirectory))
+				Directory.CreateDirectory(serverDirectory);
 
-            var ini = File.ReadAllText($"{serversRoot}DST templates\\master_server.txt");
-            File.WriteAllText(serverDirectory + "Master\\server.ini", ini);
+			File.WriteAllText(serverDirectory + "cluster_token.txt", request.ServerToken);
+			Directory.CreateDirectory(serverDirectory + "Master");
+			Directory.CreateDirectory(serverDirectory + "Caves");
 
-            ini = File.ReadAllText($"{serversRoot}DST templates\\caves_server.txt");
-            File.WriteAllText(serverDirectory + "Caves\\server.ini", ini);
+			File.Copy($"{serversRoot}/DST templates/master_server.txt", serverDirectory + "Master/server.ini");
+			if (request.Worldgen == null)
+			{
+				File.Copy($"{serversRoot}/DST templates/master_worldgen.txt", serverDirectory + "Master/worldgenoverride.lua");
+			}
+			else
+			{
+				var updater = new UpdateFileHandler(_config, _unitOfWork);
+				var result = await updater.Handle(new UpdateFileRequest(request.Id, "/DoNotStarveTogether/DST/Master/worldgenoverride.lua", request.Worldgen), CancellationToken.None);
+				if (result is not OkResult)
+					return new StatusCodeResult(500);
+			}
 
-            ini = File.ReadAllText($"{serversRoot}DST templates\\caves_worldgen.txt");
-            File.WriteAllText(serverDirectory + "Caves\\worldgenoverride.lua", ini);
+			File.Copy($"{serversRoot}/DST templates/caves_server.txt", serverDirectory + "Caves/server.ini");
+			File.Copy($"{serversRoot}/DST templates/caves_worldgen.txt", serverDirectory + "Caves/worldgenoverride.lua");
 
-            var cluster = File.ReadAllLines($"{serversRoot}DST templates\\cluster_template.txt");
-            cluster[13] = $"cluster_name = {request.ServerName}";
-            cluster[15] = $"cluster_description = {request.ServerDescription}";
-            cluster[19] = $"cluster_password = {request.ServerPassword}";
-            File.WriteAllLines(serverDirectory + "cluster.ini", cluster);
+			var cluster = File.ReadAllLines($"{serversRoot}/DST templates/cluster_template.txt");
+			cluster[13] = $"cluster_name = {request.ServerName}";
+			cluster[15] = $"cluster_description = {request.ServerDescription}";
+			cluster[19] = $"cluster_password = {request.ServerPassword}";
+			File.WriteAllLines(serverDirectory + "cluster.ini", cluster);
+			Directory.CreateDirectory(serverDirectory + "ugc");
+			if (request.Modlist != null)
+			{
+				string[] setupStrings = new string[request.Modlist.Length];
+				for (int i = 0; i < request.Modlist.Length; i++)
+					if (Regex.IsMatch(request.Modlist[i], @"/d*"))
+						setupStrings[i] = $"ServerModSetup({request.Modlist[i]})";
+				File.WriteAllLines(serverDirectory + "ugc/dedicated_server_mods_setup.lua", setupStrings);
+			}
 
-            var server = File.ReadAllText($"{serversRoot}DST templates\\Server_Master.txt");
-            server = server.Replace("MyDediServer", accUser.Email);
-            File.WriteAllText($"{dstDedicatedServerRoot}Don't Starve Together Dedicated Server\\bin\\Server_Master{accUser.Email}.bat", server);
-
-            server = File.ReadAllText($"{serversRoot}DST templates\\Server_Caves.txt");
-            server = server.Replace("MyDediServer", accUser.Email);
-            File.WriteAllText($"{dstDedicatedServerRoot}Don't Starve Together Dedicated Server\\bin\\Server_Caves{accUser.Email}.bat", server);
-
-            await task;
-            return new OkObjectResult(new BaseResponse("Created succesfully"));
-        }
-    }
+			accUser.DSTServer = true;
+			await repository.UpdateAsync(accUser);
+			await _unitOfWork.Save();
+			return new OkObjectResult(new BaseResponse("Created succesfully"));
+		}
+	}
 }

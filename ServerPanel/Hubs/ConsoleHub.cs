@@ -1,29 +1,37 @@
-﻿using Microsoft.AspNetCore.SignalR;
+﻿using Docker.DotNet.Models;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Panel.Application.Interfaces.Services;
+using Panel.Domain.Common;
 using Panel.Domain.Interfaces.Repositories;
 using Panel.Domain.Models;
 using Panel.Infrastructure.Services;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Net.WebSockets;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
 
 namespace Panel.Infrastructure.Hubs
 {
-	public class ConsoleHub(IUnitOfWork unitOfWork, IOsInteractionsService osInteractionsService, ILogger<ConsoleHub> logger) : Hub
+	public class ConsoleHub(IUnitOfWork unitOfWork, IOsInteraction osInteractionsService) : Hub
 	{
 		private static readonly HubClientsCache _connections = new();
 
 		private IUnitOfWork _unitOfWork = unitOfWork;
-		private IOsInteractionsService _processManager = osInteractionsService;
-		private ILogger<ConsoleHub> _logger = logger;
+		private IOsInteraction _processManager = osInteractionsService;
 		public override async Task OnConnectedAsync()
 		{
-			var containerName = Context.GetHttpContext()?.Request.Query["containerName"].ToString();
+			var context = Context.GetHttpContext();
+
+			var containerName = context?.Request.Query["containerName"].ToString();
+			var serverType = (ServerTypes)int.Parse(context?.Request.Query["serverType"]);
+
 
 			var record = await _unitOfWork.Repository<RunningServer>().Entities.Where(s => s.ContainerName == containerName).FirstOrDefaultAsync();
 			if (record == null)
@@ -32,26 +40,15 @@ namespace Panel.Infrastructure.Hubs
 				return;
 			}
 
-			Process attach;
-
 			if (record.ConnectionId == 0)
 			{
-				attach = _processManager.CreateCmdProcess("docker attach " + containerName);
+				var attach = _processManager.CreateCmdProcess("docker attach " + containerName);
 				record.ConnectionId = _connections.AddConnection(new ConnectionInfo(Context.ConnectionId, containerName, attach, DateTime.UtcNow));
-				attach.ErrorDataReceived += (sender, args) =>
-				{
-					if (!string.IsNullOrEmpty(args.Data))
-					{
-						_logger.LogInformation("[STDERR] " + args.Data);
-					}
-				};
 				attach.Start();
-				attach.BeginErrorReadLine();
 				attach.BeginOutputReadLine();
 			}
 			else
 			{
-				attach = _connections.GetConnection(record.ConnectionId).AttachProcess;
 				_connections.SetConnectionId(Context.ConnectionId, record.ConnectionId);
 			}
 
@@ -86,8 +83,7 @@ namespace Panel.Infrastructure.Hubs
 			conn.AttachProcess.OutputDataReceived += _outputDataReceivedHandler;
 			_connections.SetHandler(id, _outputDataReceivedHandler);
 		}
-
-		public async Task ReceiveCommandFromClient(uint connectionId, string command)
+		public async Task ReceiveCommandFromClient(uint connectionId, ServerTypes serverType, string command)
 		{
 			var attachConnection = _connections.GetConnection(connectionId);
 			if (attachConnection == null)
@@ -96,19 +92,25 @@ namespace Panel.Infrastructure.Hubs
 				return;
 			}
 			if (string.IsNullOrWhiteSpace(command)) return;
-			await attachConnection.AttachProcess.StandardInput.WriteLineAsync(command);
-			await attachConnection.AttachProcess.StandardInput.FlushAsync();
-			if (command == "stop")
-			{
-				await WaitForContainerStopAsync(attachConnection.ContainerName);
 
-				var rep = _unitOfWork.Repository<RunningServer>();
-				var record = await rep.Entities.Where(server => server.ContainerName == attachConnection.ContainerName).FirstAsync();
-				record.ConnectionId = 0;
+			if (serverType == ServerTypes.Minecraft)
+			{
+				await attachConnection.AttachProcess.StandardInput.WriteLineAsync(command);
+				await attachConnection.AttachProcess.StandardInput.FlushAsync();
+			}
+			else
+			{
+				var windowNumber = (int)(serverType == ServerTypes.Terraria ? 0 : serverType);
+				_processManager.ExecuteCommand($"docker exec {attachConnection.ContainerName} tmux send-keys -t server:{windowNumber} \"{command}\" Enter");
+			}
+
+			if (CheckStopCommand(serverType, command))
+			{
+				if (serverType == ServerTypes.DstCaves) return;
+				await _processManager.WaitForContainerAsync(attachConnection.ContainerName, false);
+				_processManager.ExecuteCommand($"docker kill {attachConnection.ContainerName}");
 
 				_connections.RemoveConnection(Context.ConnectionId);
-				await rep.UpdateAsync(record);
-				await _unitOfWork.Save();
 				await Clients.Caller.SendAsync("ServerStopped");
 			}
 		}
@@ -118,8 +120,8 @@ namespace Panel.Infrastructure.Hubs
 			if (id != 0)
 				if ((DateTime.UtcNow - _connections.GetLastUsingTime(id)) > TimeSpan.FromMinutes(10))
 				{
-					var exists = _connections.RemoveConnection(Context.ConnectionId);
-					if (exists)
+					var deleted = _connections.RemoveConnection(Context.ConnectionId);
+					if (deleted)
 					{
 						var rep = _unitOfWork.Repository<RunningServer>();
 						var record = await rep.Entities.Where(server => server.ConnectionId == id).FirstAsync();
@@ -129,24 +131,27 @@ namespace Panel.Infrastructure.Hubs
 					}
 				}
 				else
-				{
 					_connections.RemoveHubConnection(Context.ConnectionId);
-				}
 			await base.OnDisconnectedAsync(exception);
 		}
-		private async Task WaitForContainerStopAsync(string containerName, int timeoutSeconds = 10)
+		private static bool CheckStopCommand(ServerTypes serverType, string command)
 		{
-			var stopwatch = Stopwatch.StartNew();
-			while (stopwatch.Elapsed < TimeSpan.FromSeconds(timeoutSeconds))
+			switch (serverType)
 			{
-				var result = _processManager.ExecuteCommand($"docker inspect -f '{{{{.State.Running}}}}' {containerName}");
-				if (result.Trim() == "false")
-					return;
-				await Task.Delay(500); // Подождем полсекунды перед повторной проверкой
-			}
-			_processManager.ExecuteCommand($"docker kill {containerName}");
-			return;
-		}
+				case ServerTypes.Minecraft:
+					return command == "stop";
 
+				case ServerTypes.Terraria:
+					return command == "exit";
+
+				case ServerTypes.DstMaster:
+				case ServerTypes.DstCaves:
+					{
+						var pattern = @"^c_shutdown\s*\(\s*(true|false|[-+]?\d+)?\s*\)\s*;?$";
+						return Regex.IsMatch(command.Trim(), pattern);
+					}
+			}
+			return false;
+		}
 	}
 }

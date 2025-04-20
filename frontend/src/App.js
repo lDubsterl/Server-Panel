@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Routes, Route, useNavigate } from 'react-router-dom';
-import MinecraftServer from './Pages/MinecraftServer';
+import { Routes, Route, useNavigate, Switch } from 'react-router-dom';
+import Server from './Pages/Server';
 import Navbar from './components/Navbar';
 import ApiConfig from './services/api';
 import './App.css';
+import ServerSelection from './Pages/ServerSelection';
 
 const App = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -12,11 +13,11 @@ const App = () => {
 
   useEffect(() => {
     ApiConfig.api.get('/Authentication/Verify')
-  .then(response => {
-    setIsAuthenticated(true);
-    setIsAdmin(response.data);
-  })
-  .catch(() => setIsAuthenticated(false));
+      .then(response => {
+        setIsAuthenticated(true);
+        setIsAdmin(response.data);
+      })
+      .catch(() => setIsAuthenticated(false));
   }, []);
 
   const handleLogout = () => {
@@ -30,20 +31,16 @@ const App = () => {
       .catch();
   };
 
-  const handleLogin = (isAdmin) => {
-
-    setIsAuthenticated(true);
-    setIsAdmin(isAdmin);
-  };
-
   if (isAuthenticated == null)
     return;
 
+  let id = localStorage.getItem("id");
   return (
     <div className="App">
-       <Navbar isAuthenticated={isAuthenticated} onLogout={handleLogout} />
+      <Navbar isAuthenticated={isAuthenticated} onLogout={handleLogout} />
       <Routes>
-        <Route path = "/" element = {<MinecraftServer/>}/>
+        <Route path=":id" element={<ServerSelection />} />
+        <Route path=':id/:serverTypeName' element={<Server />} />
       </Routes>
     </div>
   );

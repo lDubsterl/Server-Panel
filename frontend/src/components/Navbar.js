@@ -13,7 +13,7 @@ const Navbar = ({ isAuthenticated, onLogout }) => {
     <nav className={styles.navbar}>
       <ul>
         <li><Link to="/">Главная</Link></li>
-        <li><Link to="/Servers">Панель управления</Link></li>
+        <li><Link to={`/${localStorage.getItem('id')}`}>Панель управления</Link></li>
         {isAuthenticated ? (
           <li className={styles.dropdown}>
             <img

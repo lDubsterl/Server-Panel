@@ -9,6 +9,17 @@ const Files = ({ settingsRef, serverType }) => {
     const [fileContent, setFileContent] = useState('');
     const [selectedFile, setSelectedFile] = useState(null);
 
+    let serverName = '';
+    switch (serverType) {
+        case 0:
+        case 1:
+            serverName = 'DoNotStarveTogether'; break;
+        case 2:
+            serverName = 'Minecraft'; break;
+        case 3:
+            serverName = 'Terraria'; break;
+    }
+
     const getContent = (filePath) => {
         if (filePath.split('/').slice(-1) == 'server.properties') {
             settingsRef.current.click();
@@ -20,12 +31,11 @@ const Files = ({ settingsRef, serverType }) => {
                     setFiles(response.data);
                     setPath(filePath);
                 }
-                else
-                    {
-                        setIsEditing(true);
-                        setFileContent(response.data);
-                        setSelectedFile(filePath);
-                    }
+                else {
+                    setIsEditing(true);
+                    setFileContent(response.data);
+                    setSelectedFile(filePath);
+                }
             });
     }
 
@@ -34,15 +44,17 @@ const Files = ({ settingsRef, serverType }) => {
     }, []);
 
     const selectEntryType = (filePath) => {
-        let type = 'file.png';
+        let type = 'description';
         let newFilename = filePath.split('/').slice(-1);
         if (filePath[filePath.length - 1] === '/') {
-            type = 'folder.png';
+            type = 'folder';
             newFilename = filePath.split('/').slice(-2, -1);
         }
         return (
             <>
-                <img src={type} width="20px" height="20px" style={{ marginRight: '4px' }} />
+                <span className="material-symbols-outlined" style={{ fontSize: '24px'}}>
+                    {type}
+                </span>
                 {newFilename}
             </>
         );
@@ -54,7 +66,7 @@ const Files = ({ settingsRef, serverType }) => {
             let currentPath = pathParts.slice(0, index + 1).join('/');
             return (
                 <>
-                    <span onClick={() => getContent(`${serverType}/${currentPath}/`)}>{part}</span>
+                    <span onClick={() => getContent(`${serverName}/${currentPath}/`)}>{part}</span>
                     <span>/</span>
                 </>
             );
@@ -64,7 +76,7 @@ const Files = ({ settingsRef, serverType }) => {
     return (
         <>
             <div className={styles["path-string"]}>
-                <span onClick={() => getContent(`${serverType}/`)}>{serverType}/</span>
+                <span onClick={() => getContent(`${serverName}/`)}>{serverName}/</span>
                 {setPathString()}
             </div>
             {!isEditing ? (<div className={styles["files-container"]}>
@@ -75,21 +87,21 @@ const Files = ({ settingsRef, serverType }) => {
                         onClick={() => getContent(file)}
                     >{selectEntryType(file)}</button>
                 ))}
-            </div>) : <EditFileBox filePath={selectedFile} fileContent={fileContent} setIsEditing={setIsEditing}/>}
+            </div>) : <EditFileBox filePath={selectedFile} fileContent={fileContent} setIsEditing={setIsEditing} />}
         </>
     );
 }
 
-const EditFileBox = ({filePath, fileContent, setIsEditing}) => {
+const EditFileBox = ({ filePath, fileContent, setIsEditing }) => {
     const [content, setFileContent] = useState('');
 
     const updateFile = () => {
-        ApiConfig.api.patch(`${ApiConfig.genericServerController}/UpdateFile`, {path: filePath, content: content.split("\n")});
+        ApiConfig.api.patch(`${ApiConfig.genericServerController}/UpdateFile`, { path: filePath, content: content.split("\n") });
     };
     return (
         <>
             <textarea defaultValue={fileContent} onChange={(e) => setFileContent(e.target.value)}></textarea>
-            <div style={{display: 'flex'}}>
+            <div style={{ display: 'flex' }}>
                 <button onClick={updateFile}>Сохранить</button>
                 <button onClick={() => setIsEditing(false)}>Отмена</button>
             </div>

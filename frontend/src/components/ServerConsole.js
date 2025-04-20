@@ -1,26 +1,28 @@
 import { React, useState, useEffect, useRef } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import ApiConfig from '../services/api';
 import { HubConnectionBuilder } from '@microsoft/signalr';
 
 import styles from "../styles/MinecraftConsole.module.css";
 
-const ServerConsole = () => {
+const ServerConsole = ({ serverType }) => {
     const [stopped, setStopped] = useState(true);
     const [address, setAddress] = useState('сервер не запущен');
-
     const [logs, setLogs] = useState([]);
     const [commandToSend, setCommand] = useState('');
-
     const [gameConnectionId, setConnectionId] = useState(null);
 
     const connectionRef = useRef(null);
     const containerNameRef = useRef('');
 
+    const navigate = useNavigate();
+    const { id } = useParams();
+
     const EstablishWebSocketConnection = () => {
         if (connectionRef.current) return connectionRef.current;
 
         const newConnection = new HubConnectionBuilder()
-            .withUrl(`http://localhost:5000/console?containerName=${containerNameRef.current}`)
+            .withUrl(`http://localhost:5000/console?containerName=${containerNameRef.current}&serverType=${serverType}`)
             .configureLogging('information') // Включение логирования
             .build();
         newConnection.on('InfoReceive', (obj) => {
@@ -42,6 +44,10 @@ const ServerConsole = () => {
             connectionRef.current = null;
         });
 
+        newConnection.on('Error', (response) => {
+            console.error(response.data);
+        })
+
         newConnection.start()
             .then(() => {
                 console.log('Connected to SignalR Hub');
@@ -58,9 +64,9 @@ const ServerConsole = () => {
     }, [logs.length]);
 
     // Функция для отправки сообщения
-    const sendMessage = (msg) => {
+    const sendMessage = (msg, serverType) => {
         if (connectionRef.current) {
-            connectionRef.current.invoke('ReceiveCommandFromCLient', gameConnectionId, msg || commandToSend)
+            connectionRef.current.invoke('ReceiveCommandFromCLient', gameConnectionId, serverType, msg || commandToSend)
                 .then(() => {
                     console.log('Command sent!');
                     setLogs((prevLogs) => [...prevLogs, msg || commandToSend]);
@@ -85,20 +91,25 @@ const ServerConsole = () => {
     }, []);
 
     useEffect(() => {
-        ApiConfig.api.get(`${ApiConfig.genericServerController}/GetServerStatus`)
+        ApiConfig.api.get(`${ApiConfig.genericServerController}/GetServerStatus?serverType=${serverType}`)
             .then((response) => {
                 if (response.data.isStarted) {
                     setStopped(!response.data.isStarted);
                     setAddress(response.data.address);
                     containerNameRef.current = response.data.containerName;
                     EstablishWebSocketConnection();
+                    setLoaded(true);
                 }
             })
+            .catch((error) => {
+                if (error.status == 400)
+                    navigate(`/${id}`);
+            });
     }, []);
 
-    const changeServerStatus = () => {
+    const changeServerStatus = (serverType, stopCommand) => {
         if (stopped) {
-            ApiConfig.api.get(`${ApiConfig.minecraftController}/StartMinecraftServer`)
+            ApiConfig.api.get(`${ApiConfig.genericServerController}/${serverType}?serverType=${serverType}`)
                 .then((response) => {
                     setStopped(!stopped);
                     setAddress(response.data.address);
@@ -107,24 +118,50 @@ const ServerConsole = () => {
                 });
         }
         else {
-            sendMessage('stop');
+            sendMessage(stopCommand, serverType);
         }
     }
+
+    let stopCmd = 'stop';
+    if (serverType == 3)
+        stopCmd = 'exit';
 
     return (
         <div className={styles["console-container"]}>
             <textarea className={styles["console-output"]} readOnly value={logs.join('\n')} />
-            <div className={styles["console-input-container"]}>
-                <input type="text" className={styles["console-input"]} onChange={(e) => setCommand(e.target.value)}
-                    value={commandToSend} placeholder="Enter command..." />
-                <button className={styles["console-button"]} onClick={() => sendMessage(null)}>Отправить</button>
-            </div>
-            <div className={styles["additional-features-container"]}>
-                <button className={styles["start-button"]} onClick={changeServerStatus}>{stopped ? 'Запустить сервер' : 'Остановить сервер'}</button>
-                <h4>Адрес сервера: {address}</h4>
-            </div>
+            {serverType === 0 && <>
+                <div className={styles["console-input-container"]}>
+                    <input type="text" className={styles["console-input"]} onChange={(e) => setCommand(e.target.value)}
+                        value={commandToSend} placeholder="Master server" />
+                    <button className={styles["console-button"]} onClick={() => sendMessage(null, 0)}>Отправить</button>
+                </div>
+                <div className={styles["console-input-container"]}>
+                    <input type="text" className={styles["console-input"]} onChange={(e) => setCommand(e.target.value)}
+                        value={commandToSend} placeholder="Caves" />
+                    <button className={styles["console-button"]} onClick={() => sendMessage(null, 1)}>Отправить</button>
+                </div>
+                <div className={styles["additional-features-container"]}>
+                    <button className={styles["start-button"]} onClick={() => changeServerStatus(0, 'c_shutdown()')}>
+                        {stopped ? 'Запустить сервер' : 'Остановить сервер'}
+                    </button>
+                </div>
+            </>}
+            {serverType >= 2 && <>
+                <div className={styles["console-input-container"]}>
+                    <input type="text" className={styles["console-input"]} onChange={(e) => setCommand(e.target.value)}
+                        value={commandToSend} placeholder="Enter command..." />
+                    <button className={styles["console-button"]} onClick={() => sendMessage(null, serverType)}>
+                        Отправить
+                    </button>
+                </div>
+                <div className={styles["additional-features-container"]}>
+                    <button className={styles["start-button"]} onClick={() => changeServerStatus(serverType, stopCmd)}>
+                        {stopped ? 'Запустить сервер' : 'Остановить сервер'}
+                    </button>
+                    <h4>Адрес сервера: {address}</h4>
+                </div>
+            </>}
         </div>
     );
 }
-
 export default ServerConsole;

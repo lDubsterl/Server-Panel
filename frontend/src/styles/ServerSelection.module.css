@@ -1,0 +1,35 @@
+.background {
+    position: relative;
+    background-size: cover;
+    background-image: url("../dst+terraria.jpg");
+    background-position: center;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 0;
+}
+
+.content {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-self: center;
+    background-color: #edede9;
+    text-align: center;
+    width: 60%;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 8px 12px 3px rgba(0, 0, 0, 0.5);
+    gap: 5px;
+    font-family: 'Helvetica Neue';
+}
+
+.server-item {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0px;
+}

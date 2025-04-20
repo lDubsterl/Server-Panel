@@ -1,17 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Diagnostics;
 
 namespace Panel.Application.Interfaces.Services
 {
-	public interface IOsInteractionsService
+    public interface IOsInteraction
 	{
 		public Process CreateCmdProcess(string cmdArguments, string workingDirectory = "");
 		public Task<string> ExecuteCommandAsync(string command, string workingDirectory = "");
 		public string ExecuteCommand(string command, string workingDirectory = "");
 		public int FindFreePortInRange(int rangeStart, int rangeEnd);
-	}
+		public Task<bool> WaitForContainerAsync(string containerName, bool isStartingState, int timeoutSeconds = 10);
+    }
 }

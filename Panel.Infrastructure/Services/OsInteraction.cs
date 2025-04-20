@@ -1,15 +1,15 @@
-﻿using Panel.Application.Interfaces.Services;
+﻿using Microsoft.Extensions.Logging;
+using Panel.Application.Interfaces.Services;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 
 namespace Panel.Infrastructure.Services
 {
-	public class OsInteractionsService : IOsInteractionsService
+	public class OsInteraction : IOsInteraction
 	{
 		private static string _shellName = "/bin/bash";
 		private static string _baseArguments = "-c ";
-
 		public string ExecuteCommand(string command, string workingDirectory = "")
 		{
 			string result;
@@ -76,5 +76,17 @@ namespace Panel.Infrastructure.Services
 				return FindFreePortInRange(1025, 65535);
 			return freePort;
 		}
-	}
+        public async Task<bool> WaitForContainerAsync(string containerName, bool isStartingState, int timeoutSeconds = 10)
+        {
+            var stopwatch = Stopwatch.StartNew();
+            while (stopwatch.Elapsed < TimeSpan.FromSeconds(timeoutSeconds))
+            {
+                var result = ExecuteCommand($"docker inspect -f '{{{{.State.Running}}}}' {containerName}");
+                if (string.Equals(result.Trim(), isStartingState.ToString(), StringComparison.OrdinalIgnoreCase))
+                    return true;
+                await Task.Delay(500); // Подождем полсекунды перед повторной проверкой
+            }
+            return false;
+        }
+    }
 }

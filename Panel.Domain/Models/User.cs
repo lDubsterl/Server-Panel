@@ -1,7 +1,4 @@
-﻿using Panel.Domain.Common;
-using Panel.Domain.Models;
-
-namespace Panel.Domain.Models
+﻿namespace Panel.Domain.Models
 {
 	public class User: AbstractEntity
 	{
@@ -12,6 +9,7 @@ namespace Panel.Domain.Models
 		public string Role { get; set; } = "User";
 		public string MinecraftServerExecutable { get; set; } = "";
 		public bool DSTServer { get; set; } = false;
+		public bool TerrariaServer { get; set; } = false;
 		public DateTime Ts { get; set; }
 		public List<RefreshToken> RefreshTokens { get; set; }
 		public List <RunningServer> RunningServers { get; set; }

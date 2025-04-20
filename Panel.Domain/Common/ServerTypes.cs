@@ -2,8 +2,9 @@
 {
 	public enum ServerTypes
 	{
-		Minecraft,
-		DstMaster,
-		DstCaves
+        DstMaster,
+        DstCaves,
+        Minecraft,
+        Terraria
 	}
 }

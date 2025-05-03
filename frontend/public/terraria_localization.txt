@@ -1,0 +1,8 @@
+autocreate:Размер мира
+seed:Сид
+worldname:Имя мира
+difficulty:Сложность
+maxplayers:Макс количество игроков
+password:Пароль
+motd:Сообщение дня
+secure:Античит

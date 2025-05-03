@@ -1,0 +1,86 @@
+start_location:Стартовая локация
+world_size:Размер мира
+branching:Ответвления дорог
+loop:Зацикленность дорог
+autumn:Осень
+winter:Зима
+spring:Весна
+summer:Лето
+season_start:Начальный сезон
+day:Длина дня
+weather:Погода
+earthquakes:Землетрясения
+lightning:Молнии
+frograin:Лягушачий дождь
+wildfires:Лесные пожары
+touchstone:Камни возрождения
+regrowth:Скорость восстановления ресурсов
+cavelight:Свет в пещерах
+boons:Подарки мира
+prefabswaps_start:Стартовые предметы
+prefabswaps:Замена предметов
+flowers:Цветы
+grass:Трава
+sapling:Молодые побеги
+marshbush:Болотные кусты
+tumbleweed:Перекати:поле
+reeds:Камыш
+trees:Деревья
+flint:Кремень
+rock:Камни
+rock_ice:Ледяные камни
+meteorspawner:Появление метеоров
+meteorshowers:Метеоритные дожди
+mushtree:Грибные деревья
+fern:Папоротники
+flower_cave:Пещерные цветы
+wormlights:Светящиеся черви
+berrybush:Кусты ягод
+carrot:Морковь
+mushroom:Грибы
+cactus:Кактусы
+banana:Бананы
+lichen:Лишайник
+rabbits:Кролики
+moles:Кроты
+butterfly:Бабочки
+birds:Птицы
+buzzard:Стервятники
+catcoon:Енотокоты
+perd:Индейки
+pigs:Свиньи
+lightninggoat:Вольт-козы
+beefalo:Бифало
+beefaloheat:Брачный период бифало
+hunt:Охота
+alternatehunt:Альтернативная охота
+penguins:Пингвины
+cave_ponds:Пещерные пруды
+ponds:Пруды
+bees:Пчёлы
+angrybees:Агрессивные пчёлы
+tallbirds:Длинноногие птицы
+slurper:Проглоты
+bunnymen:Кроличьи люди
+slurtles:Улипахи
+rocky:Скалистые крабы
+monkey:Пещерные обезьяны
+spiders:Пауки
+cave_spiders:Пещерные пауки
+hounds:Гончие
+houndmound:Логово гончих
+merm:Мэрмы
+tentacles:Щупальца
+chess:Механические шахматы
+lureplants:Хищные растения
+walrus:Моржи
+liefs:Энты
+deciduousmonster:Лиственные энты
+krampus:Крампус
+bearger:Медведь-барсук
+deerclops:Циклоп-олень
+goosemoose:Лось-гусь
+dragonfly:Драконья муха
+bats:Летучие мыши
+fissure:Разломы
+worms:Черви

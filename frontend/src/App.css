@@ -1,6 +1,10 @@
 .App {
+  height: 100vh;
   text-align: center;
   overflow-y: auto;
+  background-image: linear-gradient(rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.3)),
+  url('./main.jfif');
+  background-size: cover;
 }
 
 .App-logo {
@@ -29,15 +33,18 @@
   color: #61dafb;
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+span {
+  cursor: pointer;
 }
 
 * {
   font-family: 'Roboto';
+}
+
+.ant-form-item {
+  margin-bottom: 8px;
+}
+
+.ant-form-item-label {
+  padding-bottom: 4px !important;
 }

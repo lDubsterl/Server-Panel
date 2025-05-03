@@ -8,7 +8,7 @@
     border-radius: 3px;
     background-color: #2d3943;
     color: white;
-    font-weight: bold;
+    font-weight: 500;
     white-space: nowrap;
 }
 
@@ -21,7 +21,7 @@
     overflow-y: scroll;
     gap: 20px;
     width: 100%;
-    min-width: 700px;
+    min-width: 550px;
     height: 76vh;
     z-index: 3;
 }
@@ -97,7 +97,7 @@ input:checked + .slider::before {
     min-height: 30px;
 }
 
-@media screen and (max-width: 1290px) {
+@media screen and (max-width: 1600px) {
     .parameter-container{
         width: 100%;
         max-width: none;

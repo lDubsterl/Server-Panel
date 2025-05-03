@@ -19,7 +19,7 @@
     align-self: center;
     background-color: #edede9;
     text-align: center;
-    width: 100%;
+    width: 80%;
     height: 100%;
     padding: 20px;
     border-radius: 10px;
@@ -42,4 +42,16 @@
     display: grid;
     grid-template-columns: repeat(11, 1fr);
     grid-template-rows: repeat(11, 1fr);
+}
+
+.Minecraft{
+    background-image: url("../minecraft.jpg");
+}
+
+.Terraria {
+    background-image: url("../terraria.webp");
+}
+
+.DoNotStarveTogether{
+    background-image: url("../DST.jpg");
 }

@@ -27,9 +27,11 @@
 }
 
 .server-item {
-    display: flex;
-    flex-direction: row;
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr auto;
+    gap: 10px;
+    justify-items: start;
     align-items: center;
-    padding: 10px 0px;
+    padding: 10px 0;
+    width: 100%;
 }

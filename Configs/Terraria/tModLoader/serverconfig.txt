@@ -47,6 +47,7 @@ autocreate=1
 seed=AwesomeSeed
 
 #Sets the name of the world when using autocreate
+## off
 worldname=Terraria
 
 #Sets the difficulty of the world when using autocreate 0(normal), 1(expert)

@@ -2,7 +2,7 @@
 .button-container, .button-container-hidden {
     position: absolute;
     bottom: 97%;
-    left: 170px;
+    left: 270px;
     gap: 3px;
     transform: translateX(-50%);
     /* Центрируем по горизонтали */

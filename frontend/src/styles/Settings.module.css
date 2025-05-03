@@ -1,0 +1,30 @@
+.parameter-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px;
+    border-radius: 3px;
+    background-color: #2d3943;
+    color: white;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+select, input {
+    width: 200px;
+    box-sizing: border-box;
+}
+
+.saveBtn {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    background-color: #333;
+    color: white;
+}
+
+.saveBtn:disabled {
+    background-color: #6b6a6a;
+    cursor: not-allowed;
+}

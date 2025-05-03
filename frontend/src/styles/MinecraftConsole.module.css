@@ -37,17 +37,17 @@
 
 .console-button,
 .start-button {
-  padding: 10px 15px;
+  padding: 5px 15px;
   font-size: 16px;
   border: 1px solid #ccc;
   border-left: none;
-  background: #007bff;
+  background: #333;
   color: white;
   border-radius: 0 5px 5px 0;
   cursor: pointer;
 }
 
-.console-button:hover {
+.console-button:hover, .start-button:hover {
   background: #0056b3;
 }
 
@@ -56,6 +56,7 @@
   align-items: center;
   justify-content: space-between;
   width: 100%;
+  min-height: 52px;
 }
 
 .start-button {

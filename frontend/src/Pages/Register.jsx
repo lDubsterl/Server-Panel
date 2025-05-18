@@ -24,9 +24,17 @@ const Register = () => {
             >
                 <Form.Item
                     name="email"
-                    rules={[{ required: true, message: 'Введите электронную почту' }]}
+                    validateFirst
+                    rules={[{ required: true, message: 'Введите электронную почту' }, {
+                        type: 'email',
+                        message: 'Некорректный формат',
+                    },
+                    {
+                        pattern: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+                        message: 'Email должен содержать только латинские буквы и цифры',
+                    }]}
                 >
-                    <Input prefix={<UserOutlined />} placeholder="Почта" />
+                    <Input prefix={<UserOutlined />} placeholder="Почта" allowClear/>
                 </Form.Item>
                 <Form.Item name='password'
                     rules={[

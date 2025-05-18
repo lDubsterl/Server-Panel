@@ -33,15 +33,16 @@ const Login = () => {
             >
                 <Form.Item
                     name="email"
+                    validateFirst
                     rules={[{ required: true, message: 'Введите электронную почту' }]}
                 >
-                    <Input prefix={<UserOutlined />} placeholder="Почта" />
+                    <Input prefix={<UserOutlined />} placeholder="Почта" allowClear/>
                 </Form.Item>
                 <Form.Item
                     name="password"
                     rules={[{ required: true, message: 'Введите пароль' }]}
                 >
-                    <Input prefix={<LockOutlined />} type="password" placeholder="Пароль" />
+                    <Input.Password prefix={<LockOutlined />} type="password" placeholder="Пароль" allowClear/>
                 </Form.Item>
                 <Form.Item>
                     <Flex justify="space-between" align="center">

@@ -1,9 +1,11 @@
 .parameter-container {
     display: grid;
-    grid-template-columns: 2fr 1fr; /* Две колонки */
+    grid-template-columns: 2fr 1fr;
+    /* Две колонки */
     grid-template-rows: 1fr 1fr;
     justify-items: start;
     width: 48%;
+    min-width: 300px;
     padding: 5px 5px 5px 0;
     border-radius: 3px;
     background-color: #2d3943;
@@ -14,27 +16,34 @@
 
 .parameters-container {
     display: flex;
-    justify-content: center;
+    justify-content: flex-start;
     flex-wrap: wrap;
     flex-grow: 1;
     justify-self: center;
     overflow-y: scroll;
     gap: 20px;
     width: 100%;
-    min-width: 550px;
+    min-width: 300px;
     height: 76vh;
     z-index: 3;
+    overflow-x: auto;
 }
 
 .parameters-container::after {
     content: "";
     width: 100%;
-    height: 1px; /* Высота дополнительного пространства */
+    height: 1px;
+    /* Высота дополнительного пространства */
 }
 
 .b {
     width: 100%;
     max-width: none;
+}
+
+.parameter-container+.b {
+    min-width: 550px;
+    align-self: start;
 }
 
 .toggle-switch {
@@ -62,7 +71,8 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: #9CA3AF; /* Серый (выкл) */
+    background-color: #9CA3AF;
+    /* Серый (выкл) */
     border-radius: 9999px;
     transition: background-color 0.3s ease-in-out;
     cursor: pointer;
@@ -82,12 +92,22 @@
 }
 
 /* Когда чекбокс включен */
-input:checked + .slider {
-    background-color: #10B981; /* Зеленый (вкл) */
+input:checked+.slider {
+    background-color: #10B981;
+    /* Зеленый (вкл) */
 }
 
-input:checked + .slider::before {
+input:checked+.slider::before {
     transform: translateX(24px);
+}
+
+.text-input {
+    grid-row: span 2;
+    grid-column: 2;
+    align-self: center;
+    justify-self: end;
+    width: 100%;
+    min-width: 100px;
 }
 
 .save-button {
@@ -98,8 +118,14 @@ input:checked + .slider::before {
 }
 
 @media screen and (max-width: 1600px) {
-    .parameter-container{
+    .parameter-container {
         width: 100%;
         max-width: none;
+    }
+}
+
+@media screen and (max-height: 500px) {
+    .parameter-container{
+        width: 48%;
     }
 }

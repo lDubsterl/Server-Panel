@@ -37,3 +37,15 @@
 .hovered {
     transform: translateY(-8px);
 }
+
+@media screen and (max-width: 850px) {
+    .button-container, .button-container-hidden{
+        left: 230px;
+    }
+}
+
+@media screen and (max-height: 500px) {
+    .button-container, .button-container-hidden{
+        left: 280px;
+    }
+}

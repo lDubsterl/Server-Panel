@@ -8,21 +8,31 @@ const { Title, Paragraph } = Typography;
 const HomePage = ({ isAuthenticated, id }) => {
     return (
         <div style={{ padding: '40px 20px', maxWidth: 1200, margin: '0 auto' }}>
-            <Title level={2} style={{ textAlign: 'center' }}>Панель управления игровыми серверами</Title>
+            <Title level={2} style={{
+                textAlign: 'center',
+                fontWeight: 700,
+                fontSize: '36px',
+                marginBottom: '24px',
+                color: '#111',
+                backgroundColor: '#ffffffcc', // полупрозрачный белый
+                padding: '12px 24px',
+                borderRadius: '12px',
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+                display: 'inline-block'
+            }}>Панель управления игровыми серверами</Title>
             <Paragraph
                 style={{
                     textAlign: 'center',
                     maxWidth: 800,
                     margin: '0 auto 40px',
-                    fontSize: '20px',
-                    color: '#333',
-                    lineHeight: 1.8,
-                    fontWeight: 500,
-                    background: 'linear-gradient(45deg, #f5f5f5, #e0e0e0)', // Лёгкий градиент фона
-                    padding: '10px 20px',
-                    borderRadius: '8px',
-                    boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)', // Тень для контраста
-                    fontFamily: 'Arial, sans-serif'
+                    fontSize: '18px',
+                    color: '#222',
+                    lineHeight: 1.7,
+                    fontWeight: 400,
+                    backgroundColor: '#ffffffee', // чуть прозрачный белый
+                    padding: '20px 30px',
+                    borderRadius: '12px',
+                    boxShadow: '0 6px 16px rgba(0, 0, 0, 0.1)'
                 }}>
                 Запускайте, настраивайте и управляйте серверами для <strong>Terraria</strong>, <strong>Don't Starve Together</strong> и <strong>Minecraft</strong> — прямо из браузера. Простая и мощная панель для геймеров и администраторов.
             </Paragraph>

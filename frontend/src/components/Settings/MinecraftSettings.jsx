@@ -38,7 +38,7 @@ const CheckboxSlider = ({ boolKey, values, onChange }) => {
 const TextInput = ({ textKey, values, onChange }) => {
     return (
         <input type="text"
-            style={{ gridRow: 'span 2', gridColumn: '2', alignSelf: 'center', justifySelf: 'end', width: '100%' }}
+            className={styles["text-input"]}
             onBlur={(e) => onChange(textKey, e.target.value)} defaultValue={(values && values[textKey]) || ""}></input>
     );
 }

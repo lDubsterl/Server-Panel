@@ -12,6 +12,7 @@ using Panel.Infrastructure.Hubs;
 using Panel.Infrastructure.Services;
 using StackExchange.Redis;
 using System;
+using System.IO;
 using System.Reflection;
 
 namespace ServerPanel
@@ -23,14 +24,14 @@ namespace ServerPanel
 			var builder = WebApplication.CreateBuilder(args);
 
 			var services = builder.Services;
-			//builder.WebHost.UseUrls("http://0.0.0.0:5000");
-			builder.WebHost.ConfigureKestrel(serverOptions =>
-			{
-				serverOptions.ListenAnyIP(5001, listenOptions =>
-				{
-					listenOptions.UseHttps("/mnt/c/users/dubster/.aspnet/https/aspnetapp.pfx", "123");
-				});
-			});
+			builder.WebHost.UseUrls("http://0.0.0.0:5000");
+			//builder.WebHost.ConfigureKestrel(serverOptions =>
+			//{
+			//	serverOptions.ListenAnyIP(5001, listenOptions =>
+			//	{
+			//		listenOptions.UseHttps("/mnt/c/users/dubster/.aspnet/https/aspnetapp.pfx", "123");
+			//	});
+			//});
 
 			services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(Assembly.GetAssembly(typeof(Login))));
 			services.AddInfrastructureLayer(builder.Configuration);
@@ -63,10 +64,12 @@ namespace ServerPanel
 			{
 				options.AddPolicy("CORSPolicy", builder =>
 				builder.AllowAnyMethod()
-				 .WithOrigins("http://localhost:3000", "https://happiness-rosa-sad-salon.trycloudflare.com")
+				//.WithOrigins("http://localhost:3000", "https://localhost:3000")
+				.SetIsOriginAllowed(origin => true)
 				.AllowAnyHeader()
 				.AllowCredentials());
 			});
+
 			services.AddSwaggerGen(c =>
 			{
 				c.SwaggerDoc("v1", new OpenApiInfo { Title = "ServerPanel", Version = "v1" });
@@ -107,6 +110,9 @@ namespace ServerPanel
 			});
 			services.AddSignalR();
 
+			CopyDirectory("/data/Terraria", builder.Configuration["ServersDirectory"], true);
+			CopyDirectory("/data/DST templates", builder.Configuration["ServersDirectory"], true);
+
 			var app = builder.Build();
 
 			using (var scope = app.Services.CreateScope())
@@ -138,5 +144,39 @@ namespace ServerPanel
 
 			app.Run();
 		}
+
+		static void CopyDirectory(string sourceDir, string destinationDir, bool recursive)
+		{
+			// Get information about the source directory
+			var dir = new DirectoryInfo(sourceDir);
+
+			// Check if the source directory exists
+			if (!dir.Exists)
+				throw new DirectoryNotFoundException($"Source directory not found: {dir.FullName}");
+
+			// Cache directories before we start copying
+			DirectoryInfo[] dirs = dir.GetDirectories();
+
+			// Create the destination directory
+			Directory.CreateDirectory(destinationDir);
+
+			// Get the files in the source directory and copy to the destination directory
+			foreach (FileInfo file in dir.GetFiles())
+			{
+				string targetFilePath = Path.Combine(destinationDir, file.Name);
+				file.CopyTo(targetFilePath, true);
+			}
+
+			// If recursive and copying subdirectories, recursively call this method
+			if (recursive)
+			{
+				foreach (DirectoryInfo subDir in dirs)
+				{
+					string newDestinationDir = Path.Combine(destinationDir, subDir.Name);
+					CopyDirectory(subDir.FullName, newDestinationDir, true);
+				}
+			}
+		}
 	}
+
 }

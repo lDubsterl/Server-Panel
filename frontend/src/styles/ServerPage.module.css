@@ -34,8 +34,7 @@
     align-items: center;
     margin-top: 5%;
     width: 60%;
-    min-width: 700px;
-    height: auto;
+    min-width: 500px;
 }
 
 .grid-container {
@@ -44,7 +43,7 @@
     grid-template-rows: repeat(11, 1fr);
 }
 
-.Minecraft{
+.Minecraft {
     background-image: url("../minecraft.jpg");
 }
 
@@ -52,6 +51,19 @@
     background-image: url("../terraria.webp");
 }
 
-.DoNotStarveTogether{
+.DoNotStarveTogether {
     background-image: url("../DST.jpg");
+}
+
+@media screen and (max-width: 800px), (max-height: 750px) {
+    .wrapper {
+        transform: scale(0.85);
+    }
+}
+
+@media screen and (max-height: 500px) {
+    .wrapper {
+        transform: scale(0.7);
+        width: 150%;
+    }
 }

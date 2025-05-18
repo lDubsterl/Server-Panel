@@ -15,10 +15,10 @@ export default defineConfig({
     open: true,
     port: 3000,
     allowedHosts: ['surrounding-managers-fold-assessing.trycloudflare.com'],
-    https: {
-      key: fs.readFileSync(path.resolve(__dirname, './key.pem')),
-      cert: fs.readFileSync(path.resolve(__dirname, './cert.pem')),
-    },
+    // https: {
+    //   key: fs.readFileSync(path.resolve(__dirname, './key.pem')),
+    //   cert: fs.readFileSync(path.resolve(__dirname, './cert.pem')),
+    // },
   },
   build: {
     outDir: 'build',

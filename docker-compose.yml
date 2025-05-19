@@ -35,9 +35,10 @@ services:
       redis:
         condition: service_healthy
     environment:
+      - ASPNETCORE_URLS=http://0.0.0.0:80
       - ServersDirectory=/mnt
-      - DatabaseConnectionString=Server=host.docker.internal;User Id=postgres;Password=1;Port=5432;Database=SiteAccounts; # строка подключения PostgreSQL
-      - RedisConnection=localhost:6379,abortConnect=false # Строка подключения Redis
+      - DatabaseConnectionString=Host=postgres;User Id=postgres;Password=1;Port=5432;Database=SiteAccounts; # строка подключения PostgreSQL
+      - RedisConnection=redis:6379,abortConnect=false # Строка подключения Redis
     ports:
       - "5000:80"
     volumes:

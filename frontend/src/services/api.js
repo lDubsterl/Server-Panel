@@ -8,7 +8,7 @@ export const ApiConfig = {
 	minecraftController: 'ServerSelection',
 	userController: 'User',
 	api: axios.create({
-		baseURL: 'http://backend:80/api/',
+		baseURL: '/api/',
 	})
 }
 

@@ -24,14 +24,7 @@ namespace ServerPanel
 			var builder = WebApplication.CreateBuilder(args);
 
 			var services = builder.Services;
-			builder.WebHost.UseUrls("http://0.0.0.0:5000");
-			//builder.WebHost.ConfigureKestrel(serverOptions =>
-			//{
-			//	serverOptions.ListenAnyIP(5001, listenOptions =>
-			//	{
-			//		listenOptions.UseHttps("/mnt/c/users/dubster/.aspnet/https/aspnetapp.pfx", "123");
-			//	});
-			//});
+			//builder.WebHost.UseUrls("http://0.0.0.0:5000");
 
 			services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(Assembly.GetAssembly(typeof(Login))));
 			services.AddInfrastructureLayer(builder.Configuration);
